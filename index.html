@@ -265,8 +265,8 @@ const I18N={
  en:{
   how:`ⓘ How it works`,
   heroEyebrow:`PRIVACY-FIRST · RUNS IN YOUR BROWSER`,
-  heroH1a:`Strip out the sensitive bits.`,
-  heroH1b:`Then use AI and cloud freely.`,
+  heroH1a:`Going to the cloud or an AI?`,
+  heroH1b:`Mask the Few that expose you.`,
   heroSub:`MaskFew finds and removes personal data, secrets and identifiers from your files — entirely in your browser. Nothing is uploaded. You get the cleaned file back in the same format, ready for ChatGPT, a cloud drive, or a vendor.`,
   heroCta1:`Anonymize a file`,
   heroCta2:`How it works`,
@@ -336,8 +336,8 @@ const I18N={
  it:{
   how:`ⓘ Come funziona`,
   heroEyebrow:`PRIVACY-FIRST · GIRA NEL TUO BROWSER`,
-  heroH1a:`Togli i dati sensibili.`,
-  heroH1b:`Poi usa AI e cloud senza paura.`,
+  heroH1a:`Vai sul cloud o su un'AI?`,
+  heroH1b:`Maschera i pochi che ti espongono.`,
   heroSub:`MaskFew trova e rimuove dati personali, segreti e identificatori dai tuoi file — interamente nel tuo browser. Niente viene caricato. Riavrai il file ripulito nello stesso formato, pronto per ChatGPT, un cloud o un fornitore.`,
   heroCta1:`Anonimizza un file`,
   heroCta2:`Come funziona`,
@@ -610,12 +610,20 @@ async function runScan(){
   const words=((out.data&&out.data.words)||[]).filter(w=>w.text&&w.text.trim());
   const add=[];
   for(const w of words){ if(findMatches(w.text,null,true).length){ const bb=w.bbox; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); } }
-  // IBAN recompose across OCR-split tokens (checksum-validated → low false positives)
-  let glue=''; const gsp=[];
-  for(const w of words){ const st=glue.length; glue+=w.text; gsp.push({s:st,e:glue.length,bb:w.bbox}); }
-  const startRe=/[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,}/g; let im;
-  while((im=startRe.exec(glue))!==null){ const run=im[0], base=im.index; if(im.index===startRe.lastIndex) startRe.lastIndex++;
-   for(let L=Math.min(run.length,34); L>=15; L--){ if(ibanCheck(run.slice(0,L))){ const ms=base, me=base+L; for(const g of gsp){ if(g.s<me && g.e>ms){ const bb=g.bb; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); } } break; } }
+  // IBAN recompose: seed only from words starting like a country code (2 letters + 2 digits),
+  // join only same-line neighbours, box the longest run with IBAN structure (15-34 chars).
+  const ibanStruct=/^[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,30}$/;
+  const sameLine=(a,b)=>{ const cy=(a.y0+a.y1)/2; return cy>=b.y0 && cy<=b.y1; };
+  for(let i=0;i<words.length;i++){
+   if(!/^[A-Za-z]{2}\d{2}/.test(words[i].text)) continue;
+   let cand=''; const parts=[]; let bestParts=null;
+   for(let j=i;j<words.length && j<i+6;j++){
+    if(j>i && !sameLine(words[j].bbox, words[i].bbox)) break;
+    cand+=words[j].text.replace(/\s/g,''); parts.push(words[j]);
+    if(cand.length>34) break;
+    if(ibanStruct.test(cand)) bestParts=parts.slice();
+   }
+   if(bestParts) for(const p of bestParts){ const bb=p.bbox; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); }
   }
   IMG.boxes=IMG.boxes.filter(b=>!b.auto).concat(add); drawCanvas(false);
   byId('visStatus').textContent = add.length ? (LANG==='it'?('Trovate '+add.length+' aree sensibili — controlla e aggiungi a mano ciò che manca.'):('Found '+add.length+' sensitive regions — review and add anything missed by hand.')) : t.vis_status_none;

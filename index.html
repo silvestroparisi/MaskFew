@@ -608,10 +608,15 @@ async function runScan(){
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js');
   const out=await Tesseract.recognize(byId('vcanvas'),'eng+ita',{logger:m=>{ if(m.status&&m.status.indexOf('recogn')>=0) byId('visStatus').textContent=t.vis_status_ocr+' '+Math.round((m.progress||0)*100)+'%'; }});
   const words=((out.data&&out.data.words)||[]).filter(w=>w.text&&w.text.trim());
-  let full=''; const spans=[];
-  for(const w of words){ const start=full.length; full+=w.text; spans.push({start,end:full.length,bb:w.bbox}); full+=' '; }
-  const matches=findMatches(full,null,true); const add=[];
-  for(const mm of matches){ for(const sp of spans){ if(sp.start<mm.end && sp.end>mm.start){ const bb=sp.bb; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); } } }
+  const add=[];
+  for(const w of words){ if(findMatches(w.text,null,true).length){ const bb=w.bbox; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); } }
+  // IBAN recompose across OCR-split tokens (checksum-validated → low false positives)
+  let glue=''; const gsp=[];
+  for(const w of words){ const st=glue.length; glue+=w.text; gsp.push({s:st,e:glue.length,bb:w.bbox}); }
+  const startRe=/[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,}/g; let im;
+  while((im=startRe.exec(glue))!==null){ const run=im[0], base=im.index; if(im.index===startRe.lastIndex) startRe.lastIndex++;
+   for(let L=Math.min(run.length,34); L>=15; L--){ if(ibanCheck(run.slice(0,L))){ const ms=base, me=base+L; for(const g of gsp){ if(g.s<me && g.e>ms){ const bb=g.bb; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); } } break; } }
+  }
   IMG.boxes=IMG.boxes.filter(b=>!b.auto).concat(add); drawCanvas(false);
   byId('visStatus').textContent = add.length ? (LANG==='it'?('Trovate '+add.length+' aree sensibili — controlla e aggiungi a mano ciò che manca.'):('Found '+add.length+' sensitive regions — review and add anything missed by hand.')) : t.vis_status_none;
  }catch(e){ byId('visStatus').textContent='OCR error: '+e.message; }

@@ -101,6 +101,16 @@
   .status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--txt-dim);}
   .hint{margin-top:18px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--txt-faint);line-height:1.7;}
   .hint b{color:var(--txt-dim);} .hint code{background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--accent);}
+  .viscontrols{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}
+  .viscontrols .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .viscontrols .seg button{border:none;border-radius:0;border-right:1px solid var(--line);}
+  .viscontrols .seg button:last-child{border-right:none;}
+  .viscontrols .seg button.on{background:var(--accent);color:#04140f;}
+  .viscontrols button.on{border-color:var(--accent);color:#04140f;background:var(--accent);}
+  .canvaswrap{margin-top:6px;border:1px solid var(--line);border-radius:10px;overflow:auto;background:var(--panel-2);max-height:68vh;text-align:center;}
+  #vcanvas{max-width:100%;height:auto;display:block;margin:0 auto;}
+  #vcanvas.draw{cursor:crosshair;}
+  .visnote{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--txt-faint);line-height:1.6;}
   .hidden{display:none !important;}
 
   .handoff{margin-top:34px;background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
@@ -181,7 +191,7 @@
       <p class="lead" id="dropSub" style="margin:0 auto;max-width:460px;"></p>
       <p class="sm" id="dropFmt"></p>
     </label>
-    <input type="file" id="fileIn" accept=".txt,.csv,.json,.log,.tsv,.md,.xml,.yaml,.yml,.ini,.xlsx,.docx" />
+    <input type="file" id="fileIn" accept=".txt,.csv,.json,.log,.tsv,.md,.xml,.yaml,.yml,.ini,.xlsx,.docx,.png,.jpg,.jpeg,.webp,.gif,.bmp" />
     <div id="fileWrap"></div>
 
     <div class="panel hidden" id="resultsPanel">
@@ -199,6 +209,22 @@
       <div class="actionbar">
         <button class="primary" id="btnGo" disabled></button>
         <span class="status" id="status"></span>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="visualPanel">
+      <h3 id="visH"></h3>
+      <div class="viscontrols">
+        <button id="btnScan" class="primary"></button>
+        <div class="seg"><button id="styBox" class="on"></button><button id="styBlur"></button></div>
+        <button id="btnManual"></button>
+        <button id="btnClearBoxes"></button>
+      </div>
+      <div class="canvaswrap"><canvas id="vcanvas"></canvas></div>
+      <p class="visnote" id="visNote"></p>
+      <div class="actionbar">
+        <button class="primary" id="btnGoVis" disabled></button>
+        <span class="status" id="visStatus"></span>
       </div>
     </div>
 
@@ -282,6 +308,17 @@ const I18N={
   status_done:`Done — your cleaned file has been downloaded.`,
   status_unsupported:`Unsupported file type.`,
   status_liberr:`Library still loading — try again in a second.`,
+  vis_h:`Image redaction — OCR finds the text, you mask it`,
+  vis_scan:`Scan for sensitive text`,
+  sty_box:`Black box`,
+  sty_blur:`Blur`,
+  vis_manual:`Draw box`,
+  vis_clear:`Clear boxes`,
+  vis_go:`Anonymize & download ↓`,
+  vis_note:`Detection runs OCR (Tesseract) in your browser — accuracy depends on image quality, so always add anything it missed by hand with "Draw box" (drag to add, click a box to remove). Output is a PNG; image metadata (EXIF/GPS) is stripped on export.`,
+  vis_status_loaded:`Image loaded. Scan for text, or draw boxes by hand, then download.`,
+  vis_status_ocr:`Reading text (OCR)…`,
+  vis_status_none:`No sensitive text detected — draw any regions by hand before downloading.`,
   hoEyebrow:`PART OF THE FEW TOOLKIT`,
   hoH:`MaskFew is one of three. <span class="ac">FirstFew</span> prioritizes, <span class="ac">FixFew</span> remediates.`,
   hoP:`A small family of free, open-source, privacy-first security tools that run entirely in your browser. Find them on GitHub.`,
@@ -342,6 +379,17 @@ const I18N={
   status_done:`Fatto — il file ripulito è stato scaricato.`,
   status_unsupported:`Tipo di file non supportato.`,
   status_liberr:`Libreria ancora in caricamento — riprova tra un secondo.`,
+  vis_h:`Redazione immagine — l'OCR trova il testo, tu lo mascheri`,
+  vis_scan:`Cerca testo sensibile`,
+  sty_box:`Box nero`,
+  sty_blur:`Blur`,
+  vis_manual:`Disegna box`,
+  vis_clear:`Pulisci box`,
+  vis_go:`Anonimizza e scarica ↓`,
+  vis_note:`Il rilevamento usa l'OCR (Tesseract) nel tuo browser — la precisione dipende dalla qualità dell'immagine, quindi aggiungi sempre a mano ciò che manca con "Disegna box" (trascina per aggiungere, clicca un box per rimuoverlo). L'output è un PNG; i metadati dell'immagine (EXIF/GPS) vengono azzerati all'export.`,
+  vis_status_loaded:`Immagine caricata. Cerca il testo, o disegna i box a mano, poi scarica.`,
+  vis_status_ocr:`Lettura testo (OCR)…`,
+  vis_status_none:`Nessun testo sensibile rilevato — disegna a mano le aree prima di scaricare.`,
   hoEyebrow:`PARTE DEL FEW TOOLKIT`,
   hoH:`MaskFew è uno di tre. <span class="ac">FirstFew</span> prioritizza, <span class="ac">FixFew</span> mitiga.`,
   hoP:`Una piccola famiglia di strumenti di sicurezza gratuiti, open source e privacy-first che girano interamente nel browser. Li trovi su GitHub.`,
@@ -372,6 +420,7 @@ function applyLang(){
  byId('hoH').innerHTML=t.hoH; byId('hoP').innerHTML=t.hoP;
  ['m_h1','m_h2','m_h3','m_h4'].forEach(k=>byId(k).textContent=t[k]);
  ['m_p1','m_p2','m_p3','m_p4'].forEach(k=>byId(k).innerHTML=t[k]);
+ byId('visH').textContent=t.vis_h; byId('btnScan').textContent=t.vis_scan; byId('styBox').textContent=t.sty_box; byId('styBlur').textContent=t.sty_blur; byId('btnManual').textContent=t.vis_manual; byId('btnClearBoxes').textContent=t.vis_clear; byId('btnGoVis').textContent=t.vis_go; byId('visNote').textContent=t.vis_note;
  if(LAST) renderResults();
 }
 
@@ -493,10 +542,12 @@ function updateGo(){ const t=T(); const btn=byId('btnGo'); const has=[...ENABLED
 
 async function onFile(file){
  if(!file) return; const ext=extOf(file.name); const t=T();
- if(!TEXT_EXT.includes(ext) && ext!=='xlsx' && ext!=='docx'){ byId('status').textContent=t.status_unsupported; return; }
- if((ext==='xlsx' && typeof XLSX==='undefined') || (ext==='docx' && typeof JSZip==='undefined')){ byId('status').textContent=t.status_liberr; return; }
+ const known=TEXT_EXT.includes(ext)||ext==='xlsx'||ext==='docx'||IMG_EXT.includes(ext);
+ if(!known){ byId('status').textContent=t.status_unsupported; return; }
  byId('fileWrap').innerHTML=`<div class="filebadge"><span>📄 ${file.name}</span><span class="x" id="clrFile">×</span></div>`;
  byId('clrFile').onclick=clearFile;
+ if(IMG_EXT.includes(ext)){ return onImage(file); }
+ if((ext==='xlsx' && typeof XLSX==='undefined') || (ext==='docx' && typeof JSZip==='undefined')){ byId('status').textContent=t.status_liberr; return; }
  byId('resultsPanel').classList.remove('hidden'); byId('modePanel').classList.remove('hidden');
  byId('status').textContent=t.status_scanning;
  try{
@@ -506,7 +557,7 @@ async function onFile(file){
   byId('status').textContent=Object.keys(counts).length?t.status_ready:t.status_none;
  }catch(e){ byId('status').textContent='Error: '+e.message; }
 }
-function clearFile(){ LAST=null; ENABLED=new Set(); byId('fileWrap').innerHTML=''; byId('fileIn').value=''; byId('resultsPanel').classList.add('hidden'); byId('modePanel').classList.add('hidden'); byId('status').textContent=''; }
+function clearFile(){ LAST=null; ENABLED=new Set(); IMG={img:null,boxes:[],style:(IMG&&IMG.style)||'box',manual:false,drawing:false,sx:0,sy:0,cur:null,file:null}; byId('fileWrap').innerHTML=''; byId('fileIn').value=''; byId('resultsPanel').classList.add('hidden'); byId('modePanel').classList.add('hidden'); byId('visualPanel').classList.add('hidden'); byId('status').textContent=''; byId('visStatus').textContent=''; byId('vcanvas').classList.remove('draw'); byId('btnManual').classList.remove('on'); }
 
 byId('fileIn').addEventListener('change',e=>onFile(e.target.files[0]));
 const drop=byId('drop');
@@ -523,8 +574,73 @@ byId('btnGo').onclick=async()=>{
  byId('btnGo').disabled=false; updateGo();
 };
 
+/* ---------- image redaction (OCR + manual boxes) ---------- */
+const IMG_EXT=['png','jpg','jpeg','webp','gif','bmp'];
+let IMG={img:null,boxes:[],style:'box',manual:false,drawing:false,sx:0,sy:0,cur:null,file:null};
+
+function loadScript(src){ return new Promise((res,rej)=>{ if([...document.scripts].some(s=>s.src===src)) return res(); const s=document.createElement('script'); s.src=src; s.onload=()=>res(); s.onerror=()=>rej(new Error('failed to load '+src)); document.head.appendChild(s); }); }
+function norm(r){ return {x:Math.min(r.x,r.x+r.w),y:Math.min(r.y,r.y+r.h),w:Math.abs(r.w),h:Math.abs(r.h)}; }
+function vXY(e){ const c=byId('vcanvas'); const r=c.getBoundingClientRect(); const tt=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]); const cx=(tt?tt.clientX:e.clientX)-r.left, cy=(tt?tt.clientY:e.clientY)-r.top; return {x:cx*(c.width/r.width), y:cy*(c.height/r.height)}; }
+
+function onImage(file){
+ const t=T();
+ byId('resultsPanel').classList.add('hidden'); byId('modePanel').classList.add('hidden'); byId('visualPanel').classList.remove('hidden');
+ const url=URL.createObjectURL(file); const img=new Image();
+ img.onload=()=>{ URL.revokeObjectURL(url); IMG={img,boxes:[],style:IMG.style||'box',manual:false,drawing:false,sx:0,sy:0,cur:null,file};
+  const c=byId('vcanvas'); c.width=img.naturalWidth; c.height=img.naturalHeight; c.classList.remove('draw'); byId('btnManual').classList.remove('on'); drawCanvas(false);
+  byId('btnGoVis').disabled=false; byId('visStatus').textContent=t.vis_status_loaded; };
+ img.onerror=()=>{ byId('visStatus').textContent='Error loading image'; };
+ img.src=url;
+}
+function drawCanvas(final){
+ const c=byId('vcanvas'); if(!IMG.img) return; const ctx=c.getContext('2d'); ctx.filter='none'; ctx.clearRect(0,0,c.width,c.height); ctx.drawImage(IMG.img,0,0);
+ const lw=Math.max(2,c.width/400);
+ for(const b of IMG.boxes){
+  if(final){ if(IMG.style==='blur'){ ctx.save(); ctx.beginPath(); ctx.rect(b.x,b.y,b.w,b.h); ctx.clip(); ctx.filter='blur('+Math.max(6,Math.round(Math.min(b.w,b.h)/3))+'px)'; ctx.drawImage(IMG.img,0,0); ctx.restore(); ctx.filter='none'; }
+   else { ctx.fillStyle='#000'; ctx.fillRect(b.x,b.y,b.w,b.h); } }
+  else { ctx.save(); ctx.fillStyle='rgba(55,224,176,0.30)'; ctx.fillRect(b.x,b.y,b.w,b.h); ctx.strokeStyle='#37e0b0'; ctx.lineWidth=lw; ctx.strokeRect(b.x,b.y,b.w,b.h); ctx.restore(); }
+ }
+ if(IMG.cur && !final){ const r=norm(IMG.cur); ctx.save(); ctx.strokeStyle='#ff9a3c'; ctx.setLineDash([6,4]); ctx.lineWidth=lw; ctx.strokeRect(r.x,r.y,r.w,r.h); ctx.restore(); }
+}
+async function runScan(){
+ const t=T(); if(!IMG.img) return; byId('btnScan').disabled=true; byId('visStatus').textContent=t.vis_status_ocr;
+ try{
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js');
+  const out=await Tesseract.recognize(byId('vcanvas'),'eng+ita',{logger:m=>{ if(m.status&&m.status.indexOf('recogn')>=0) byId('visStatus').textContent=t.vis_status_ocr+' '+Math.round((m.progress||0)*100)+'%'; }});
+  const words=((out.data&&out.data.words)||[]).filter(w=>w.text&&w.text.trim());
+  let full=''; const spans=[];
+  for(const w of words){ const start=full.length; full+=w.text; spans.push({start,end:full.length,bb:w.bbox}); full+=' '; }
+  const matches=findMatches(full,null); const add=[];
+  for(const mm of matches){ for(const sp of spans){ if(sp.start<mm.end && sp.end>mm.start){ const bb=sp.bb; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); } } }
+  IMG.boxes=IMG.boxes.filter(b=>!b.auto).concat(add); drawCanvas(false);
+  byId('visStatus').textContent = add.length ? (LANG==='it'?('Trovate '+add.length+' aree sensibili — controlla e aggiungi a mano ciò che manca.'):('Found '+add.length+' sensitive regions — review and add anything missed by hand.')) : t.vis_status_none;
+ }catch(e){ byId('visStatus').textContent='OCR error: '+e.message; }
+ byId('btnScan').disabled=false;
+}
+function outNameImg(name){ const i=name.lastIndexOf('.'); return (i<0?name:name.slice(0,i))+'_masked.png'; }
+function exportImage(){
+ const t=T(); if(!IMG.img) return; byId('btnGoVis').disabled=true; byId('visStatus').textContent=t.status_working;
+ IMG.cur=null; drawCanvas(true);
+ byId('vcanvas').toBlob(b=>{ dl(outNameImg(IMG.file.name),b); drawCanvas(false); byId('visStatus').textContent=t.status_done; byId('btnGoVis').disabled=false; },'image/png');
+}
+function wireImage(){
+ byId('btnScan').onclick=runScan; byId('btnGoVis').onclick=exportImage;
+ byId('styBox').onclick=()=>{ IMG.style='box'; byId('styBox').classList.add('on'); byId('styBlur').classList.remove('on'); drawCanvas(false); };
+ byId('styBlur').onclick=()=>{ IMG.style='blur'; byId('styBlur').classList.add('on'); byId('styBox').classList.remove('on'); drawCanvas(false); };
+ byId('btnManual').onclick=()=>{ IMG.manual=!IMG.manual; byId('btnManual').classList.toggle('on',IMG.manual); byId('vcanvas').classList.toggle('draw',IMG.manual); };
+ byId('btnClearBoxes').onclick=()=>{ IMG.boxes=[]; IMG.cur=null; drawCanvas(false); };
+ const c=byId('vcanvas');
+ const down=e=>{ if(!IMG.manual||!IMG.img) return; e.preventDefault(); const p=vXY(e); IMG.drawing=true; IMG.sx=p.x; IMG.sy=p.y; IMG.cur={x:p.x,y:p.y,w:0,h:0}; };
+ const move=e=>{ if(!IMG.drawing) return; e.preventDefault(); const p=vXY(e); IMG.cur={x:IMG.sx,y:IMG.sy,w:p.x-IMG.sx,h:p.y-IMG.sy}; drawCanvas(false); };
+ const up=e=>{ if(!IMG.manual||!IMG.img||!IMG.drawing) return; IMG.drawing=false; const r=norm(IMG.cur||{x:0,y:0,w:0,h:0}); const p=vXY(e); IMG.cur=null;
+   if(r.w>4&&r.h>4){ IMG.boxes.push(r); } else { const i=IMG.boxes.findIndex(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h); if(i>=0) IMG.boxes.splice(i,1); }
+   drawCanvas(false); };
+ c.addEventListener('mousedown',down); c.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+ c.addEventListener('touchstart',down,{passive:false}); c.addEventListener('touchmove',move,{passive:false}); c.addEventListener('touchend',up);
+}
+
 /* ---------- init ---------- */
-setTheme('dark'); setLang('en');
+setTheme('dark'); setLang('en'); wireImage();
 </script>
 </body>
 </html>

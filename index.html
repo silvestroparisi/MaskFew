@@ -270,11 +270,11 @@ const I18N={
   modePhT:`Placeholder`,
   modePhD:`Replace with a tag like [EMAIL], [IBAN]. Simplest, fully removes the value.`,
   modePsT:`Consistent pseudonym`,
-  modePsD:`Replace with EMAIL_1, EMAIL_2… same value → same label everywhere. Best for feeding to AI: structure survives, identity doesn't.`,
+  modePsD:`Replace with [MASK_EMAIL_1], [MASK_IP_1]… same value → same label everywhere, and all searchable by typing [MASK. Best for feeding to AI: structure survives, identity doesn't.`,
   modeMkT:`Mask`,
   modeMkD:`Keep the last 4 characters (••••6789). Useful when you still need a partial reference.`,
   btnGo:`Anonymize & download ↓`,
-  hint:`Tip: <b>consistent pseudonym</b> is usually what you want before sending to an AI — the model can still reason about "PERSONA_1 paid AZIENDA_2" without ever seeing the real names. Everything runs offline once the page is loaded.`,
+  hint:`Tip: <b>consistent pseudonym</b> is usually what you want before sending to an AI — the same value keeps the same label, and every replacement is wrapped like <code>[MASK_EMAIL_1]</code>, so you can find them all by searching <code>[MASK</code>. Everything runs offline once the page is loaded.`,
   status_scanning:`Reading and scanning…`,
   status_none:`No sensitive data detected with the current recognizers. Review manually before sharing.`,
   status_ready:`Review the categories, choose a mode, then download.`,
@@ -292,7 +292,7 @@ const I18N={
   m_h2:`What it detects`,
   m_p2:`Email · phone numbers · IBAN (checksum-validated) · codice fiscale · partita IVA (checksum-validated) · credit cards (Luhn-validated) · IPv4 addresses · secrets (AWS keys, JWTs, private-key blocks). Structured identifiers are caught with high precision; free-text names and addresses are not yet covered.`,
   m_h3:`The three modes`,
-  m_p3:`<b>Placeholder</b> swaps each value for a tag. <b>Consistent pseudonym</b> swaps each unique value for a stable label (EMAIL_1…), so a document keeps its internal logic — ideal before sending to an AI. <b>Mask</b> keeps the last few characters for partial reference.`,
+  m_p3:`<b>Placeholder</b> swaps each value for a tag. <b>Consistent pseudonym</b> swaps each unique value for a stable, searchable label (<code>[MASK_EMAIL_1]</code>…), so a document keeps its internal logic and you can find every replacement by searching <code>[MASK</code> — ideal before sending to an AI. <b>Mask</b> keeps the last few characters for partial reference.`,
   m_h4:`Honest limits`,
   m_p4:`Detection is best-effort, never 100% — always review before sharing. Complex DOCX/XLSX (charts, macros, text split mid-word across runs) may not be fully covered. PDF and images (which need OCR) are deliberately left out of this version. Treat the output as "much safer", not "guaranteed clean".`
  },
@@ -330,11 +330,11 @@ const I18N={
   modePhT:`Segnaposto`,
   modePhD:`Sostituisce con un'etichetta tipo [EMAIL], [IBAN]. Il più semplice, rimuove del tutto il valore.`,
   modePsT:`Pseudonimo consistente`,
-  modePsD:`Sostituisce con EMAIL_1, EMAIL_2… stesso valore → stessa etichetta ovunque. Ideale per darlo in pasto a un'AI: la struttura resta, l'identità no.`,
+  modePsD:`Sostituisce con [MASK_EMAIL_1], [MASK_IP_1]… stesso valore → stessa etichetta ovunque, e tutte ricercabili scrivendo [MASK. Ideale per darlo in pasto a un'AI: la struttura resta, l'identità no.`,
   modeMkT:`Maschera`,
   modeMkD:`Tiene le ultime 4 cifre (••••6789). Utile quando serve ancora un riferimento parziale.`,
   btnGo:`Anonimizza e scarica ↓`,
-  hint:`Suggerimento: lo <b>pseudonimo consistente</b> è di solito quello che vuoi prima di mandare a un'AI — il modello può ancora ragionare su "PERSONA_1 ha pagato AZIENDA_2" senza vedere i nomi veri. Tutto gira offline una volta caricata la pagina.`,
+  hint:`Suggerimento: lo <b>pseudonimo consistente</b> è di solito quello che vuoi prima di mandare a un'AI — lo stesso valore mantiene la stessa etichetta, e ogni sostituzione è racchiusa così <code>[MASK_EMAIL_1]</code>, quindi le trovi tutte cercando <code>[MASK</code>. Tutto gira offline una volta caricata la pagina.`,
   status_scanning:`Lettura e analisi…`,
   status_none:`Nessun dato sensibile rilevato con i recognizer attuali. Controlla a mano prima di condividere.`,
   status_ready:`Rivedi le categorie, scegli una modalità, poi scarica.`,
@@ -352,7 +352,7 @@ const I18N={
   m_h2:`Cosa rileva`,
   m_p2:`Email · numeri di telefono · IBAN (validato col checksum) · codice fiscale · partita IVA (validata col checksum) · carte di credito (validate con Luhn) · indirizzi IPv4 · segreti (chiavi AWS, JWT, blocchi di chiave privata). Gli identificatori strutturati sono catturati con alta precisione; nomi e indirizzi in testo libero non sono ancora coperti.`,
   m_h3:`Le tre modalità`,
-  m_p3:`<b>Segnaposto</b> sostituisce ogni valore con un'etichetta. <b>Pseudonimo consistente</b> sostituisce ogni valore unico con un'etichetta stabile (EMAIL_1…), così il documento mantiene la sua logica interna — ideale prima di mandarlo a un'AI. <b>Maschera</b> tiene le ultime cifre per un riferimento parziale.`,
+  m_p3:`<b>Segnaposto</b> sostituisce ogni valore con un'etichetta. <b>Pseudonimo consistente</b> sostituisce ogni valore unico con un'etichetta stabile e ricercabile (<code>[MASK_EMAIL_1]</code>…), così il documento mantiene la sua logica interna e trovi ogni sostituzione cercando <code>[MASK</code> — ideale prima di mandarlo a un'AI. <b>Maschera</b> tiene le ultime cifre per un riferimento parziale.`,
   m_h4:`Limiti onesti`,
   m_p4:`Il rilevamento è best-effort, mai al 100% — controlla sempre prima di condividere. DOCX/XLSX complessi (grafici, macro, testo spezzato a metà parola su più "run") possono non essere coperti del tutto. PDF e immagini (che richiedono OCR) sono volutamente esclusi da questa versione. Tratta il risultato come "molto più sicuro", non "garantito pulito".`
  }
@@ -442,7 +442,7 @@ function replacement(type,value,mode,state){
  if(mode==='mask') return maskVal(value);
  if(!state.map[type]) state.map[type]=new Map();
  const mp=state.map[type]; if(mp.has(value)) return mp.get(value);
- state.seq[type]=(state.seq[type]||0)+1; const lbl=KEY[type]+'_'+state.seq[type]; mp.set(value,lbl); return lbl;
+ state.seq[type]=(state.seq[type]||0)+1; const lbl='[MASK_'+KEY[type]+'_'+state.seq[type]+']'; mp.set(value,lbl); return lbl;
 }
 function redactText(text, enabled, mode, state){
  const ms=findMatches(text, enabled); if(!ms.length) return text;
@@ -462,7 +462,7 @@ let ENABLED=new Set(); let MODE='placeholder';
 
 function extOf(name){ const m=/\.([a-z0-9]+)$/i.exec(name); return m?m[1].toLowerCase():''; }
 const TEXT_EXT=['txt','csv','json','log','tsv','md','xml','yaml','yml','ini'];
-function outName(name){ const i=name.lastIndexOf('.'); return i<0?name+'-anon':name.slice(0,i)+'-anon'+name.slice(i); }
+function outName(name){ const i=name.lastIndexOf('.'); return i<0?name+'_masked':name.slice(0,i)+'_masked'+name.slice(i); }
 function dl(name, blob){ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },1500); }
 
 async function extractText(file, ext){

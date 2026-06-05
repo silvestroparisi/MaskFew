@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MaskFew — privacy-first data anonymizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{--bg:#0a0c10;--panel:#11151c;--panel-2:#161b24;--line:#222a36;--line-soft:#1a212b;--txt:#dfe6f0;--txt-dim:#8893a4;--txt-faint:#5b6573;--accent:#37e0b0;--warn:#ff9a3c;--danger:#ff3b53;--grid:rgba(120,140,170,0.045);--op:#a78bfa;}
+  html[data-theme="light"]{--bg:#f5f7fa;--panel:#ffffff;--panel-2:#eef1f6;--line:#dde3ec;--line-soft:#e8edf3;--txt:#141a24;--txt-dim:#54607a;--txt-faint:#8b94a6;--accent:#0fae82;--warn:#d9731a;--danger:#e11d48;--grid:rgba(30,50,90,0.05);--op:#6d4bff;}
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;scroll-behavior:smooth;overflow-x:hidden;}
+  body{background:var(--bg);color:var(--txt);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.5;min-height:100vh;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:42px 42px;}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+
+  .topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:12px 22px;background:rgba(10,12,16,.72);backdrop-filter:blur(9px);border-bottom:1px solid var(--line-soft);}
+  html[data-theme="light"] .topbar{background:rgba(245,247,250,.8);}
+  .tb-brand{font-family:'Space Mono',monospace;font-weight:700;letter-spacing:.02em;font-size:16px;display:flex;align-items:center;gap:9px;}
+  .tb-brand .ac,.modal h3 .ac,.handoff .ac{color:var(--accent);}
+  .tb-brand .dot{width:8px;height:8px;border-radius:2px;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.6s infinite;}
+  .tb-right{display:flex;gap:10px;align-items:center;}
+  button,label.btn{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;background:var(--panel-2);color:var(--txt);border:1px solid var(--line);padding:9px 14px;border-radius:7px;cursor:pointer;transition:.15s;text-transform:uppercase;}
+  button:hover,label.btn:hover{border-color:var(--accent);color:var(--accent);}
+  button.primary{background:var(--accent);color:#04140f;border-color:var(--accent);font-weight:600;}
+  button.primary:hover{filter:brightness(1.1);color:#04140f;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  button:disabled:hover{border-color:var(--line);color:var(--txt);}
+  input[type=file]{display:none;}
+  .langsw,.themesw{display:inline-flex;border:1px solid var(--line);border-radius:20px;overflow:hidden;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .langsw span,.themesw span{padding:8px 12px;cursor:pointer;color:var(--txt-faint);user-select:none;letter-spacing:.06em;}
+  .langsw span.on,.themesw span.on{background:var(--accent);color:#04140f;font-weight:600;}
+  .langsw span:hover:not(.on),.themesw span:hover:not(.on){color:var(--txt);}
+
+  .hero{position:relative;min-height:90vh;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;padding:60px 22px;}
+  .dotfield{position:absolute;inset:0;z-index:0;}
+  .dotfield i{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--txt-faint);opacity:.22;}
+  .dotfield i.ac{background:var(--accent);opacity:1;box-shadow:0 0 13px var(--accent);width:6px;height:6px;animation:pulse 2.6s infinite;}
+  .hero::after{content:"";position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse 60% 50% at 50% 45%,transparent 30%,var(--bg) 90%);}
+  .hero-inner{position:relative;z-index:2;max-width:920px;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);margin-bottom:22px;opacity:0;animation:fu .6s .1s forwards;}
+  .hero h1{font-family:'Space Mono',monospace;font-weight:700;font-size:clamp(34px,6.6vw,76px);line-height:1.06;margin:0;letter-spacing:-.01em;}
+  .hero h1 .b1{display:block;opacity:0;animation:fu .6s .22s forwards;}
+  .hero h1 .b2{display:block;color:var(--accent);opacity:0;animation:fu .6s .36s forwards;}
+  .hero .sub{max-width:660px;margin:26px auto 0;font-size:clamp(15px,1.8vw,19px);color:var(--txt-dim);line-height:1.6;opacity:0;animation:fu .6s .52s forwards;}
+  .hero .cta{margin-top:34px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fu .6s .68s forwards;}
+  .hero .cta button{padding:14px 22px;font-size:13px;border-radius:9px;}
+  .scrollcue{position:absolute;bottom:22px;left:50%;color:var(--txt-faint);font-size:20px;z-index:2;animation:bob 1.8s infinite;}
+
+  .story{max-width:1000px;margin:0 auto;padding:10px 22px;}
+  .block{padding:52px 0;border-top:1px solid var(--line-soft);opacity:0;transform:translateY(22px);transition:.7s ease;}
+  .block.in{opacity:1;transform:none;}
+  .block .eyebrow{animation:none;opacity:1;margin-bottom:14px;}
+  .block h2{font-family:'Space Mono',monospace;font-weight:700;font-size:clamp(26px,4vw,42px);margin:0 0 14px;line-height:1.1;}
+  .lead{font-size:clamp(15px,1.7vw,18px);color:var(--txt-dim);line-height:1.65;max-width:720px;margin:0;}
+  .lead b{color:var(--txt);}
+  .signals{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px;}
+  .sigcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;border-top:3px solid var(--accent);}
+  .sigcard:nth-child(1){border-top-color:var(--danger);}.sigcard:nth-child(2){border-top-color:var(--warn);}.sigcard:nth-child(3){border-top-color:var(--op);}
+  .sigcard h3{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.05em;margin:0 0 9px;}
+  .sigcard p{margin:0;font-size:13px;color:var(--txt-dim);line-height:1.55;}
+  .mission,.privacy{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:30px 28px;}
+  .privacy{border-left:3px solid var(--accent);}
+  @media(max-width:760px){.signals{grid-template-columns:1fr;}}
+
+  .app{max-width:900px;margin:20px auto 0;padding:0 22px 60px;scroll-margin-top:62px;}
+  .app-head{padding:44px 0 4px;border-top:1px solid var(--line-soft);}
+  .app-head h2{font-family:'Space Mono',monospace;font-size:clamp(22px,3vw,32px);margin:6px 0 0;}
+  .datanote{margin-top:16px;background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:9px;padding:11px 14px;font-size:12.5px;color:var(--txt-dim);line-height:1.55;}
+  .drop{display:block;width:100%;margin-top:22px;border:1.5px dashed var(--line);border-radius:14px;padding:40px 22px;text-align:center;transition:.15s;background:var(--panel);}
+  .drop.over{border-color:var(--accent);background:var(--panel-2);}
+  .drop .big{font-family:'Space Mono',monospace;font-size:17px;margin:0 0 6px;}
+  .drop .sm{font-size:12.5px;color:var(--txt-faint);font-family:'IBM Plex Mono',monospace;margin-top:10px;}
+  .filebadge{display:inline-flex;align-items:center;gap:10px;margin-top:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .filebadge .x{cursor:pointer;color:var(--txt-faint);}.filebadge .x:hover{color:var(--danger);}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:20px;}
+  .panel h3{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-dim);margin:0 0 14px;font-weight:500;}
+  .types{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  @media(max-width:620px){.types{grid-template-columns:1fr;}}
+  .typechip{display:flex;align-items:center;gap:11px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;cursor:pointer;transition:.12s;}
+  .typechip:hover{border-color:var(--accent);}
+  .typechip.off{opacity:.45;}
+  .typechip .cb{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--txt-faint);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;color:#04140f;}
+  .typechip:not(.off) .cb{background:var(--accent);border-color:var(--accent);}
+  .typechip .nm{font-size:13px;flex:1;}
+  .typechip .ct{font-family:'Space Mono',monospace;font-weight:700;font-size:15px;color:var(--accent);}
+  .typechip.zero{opacity:.4;}.typechip.zero .ct{color:var(--txt-faint);}
+  .modes{display:flex;gap:10px;flex-wrap:wrap;}
+  .mode{flex:1;min-width:180px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:13px 14px;cursor:pointer;transition:.12s;}
+  .mode:hover{border-color:var(--accent);}
+  .mode.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
+  .mode .mt{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;margin-bottom:5px;}
+  .mode.on .mt{color:var(--accent);}
+  .mode .md{font-size:11.5px;color:var(--txt-dim);line-height:1.45;}
+  .actionbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:20px;}
+  .status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--txt-dim);}
+  .hint{margin-top:18px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--txt-faint);line-height:1.7;}
+  .hint b{color:var(--txt-dim);} .hint code{background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--accent);}
+  .hidden{display:none !important;}
+
+  .handoff{margin-top:34px;background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+  .handoff .ho-txt{flex:1 1 320px;min-width:240px;}
+  .handoff .eyebrow{animation:none;opacity:1;margin-bottom:11px;}
+  .handoff h3{font-size:18px;font-weight:600;margin:0 0 8px;line-height:1.32;color:var(--txt);}
+  .handoff p{margin:0;font-size:13px;color:var(--txt-dim);line-height:1.55;}
+  .handoff a.cta-fx{flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#04140f;border:1px solid var(--accent);padding:13px 20px;border-radius:9px;text-decoration:none;font-weight:600;white-space:nowrap;transition:.15s;}
+  .handoff a.cta-fx:hover{filter:brightness(1.1);}
+
+  footer{max-width:900px;margin:0 auto;padding:24px 22px 50px;border-top:1px solid var(--line-soft);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--txt-faint);line-height:1.7;} footer a{color:var(--accent);text-decoration:none;}
+
+  .modal-bg{position:fixed;inset:0;z-index:90;background:rgba(4,7,11,.7);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:50px 18px;}
+  .modal-bg.on{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:680px;width:100%;padding:34px 32px;position:relative;}
+  .modal h3{font-family:'Space Mono',monospace;font-size:22px;margin:0 0 6px;}
+  .modal h4{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:24px 0 8px;}
+  .modal p,.modal li{font-size:13.5px;color:var(--txt-dim);line-height:1.6;}
+  .modal code{background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--accent);font-size:12px;}
+  .modal .close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--txt-faint);font-size:22px;padding:4px 8px;}
+  .modal .close:hover{color:var(--danger);border:none;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="tb-brand"><span class="dot"></span><span>Mask<span class="ac">Few</span></span></div>
+    <div class="tb-right">
+      <button id="btnHow"></button>
+      <div class="themesw"><span id="thDark" class="on">☾</span><span id="thLight">☀</span></div>
+      <div class="langsw"><span id="lgEn" class="on">EN</span><span id="lgIt">IT</span></div>
+    </div>
+  </div>
+
+  <section class="hero">
+    <div class="dotfield" id="dotfield"></div>
+    <div class="hero-inner">
+      <div class="eyebrow" id="heroEyebrow"></div>
+      <h1><span class="b1" id="heroH1a"></span><span class="b2" id="heroH1b"></span></h1>
+      <p class="sub" id="heroSub"></p>
+      <div class="cta">
+        <button class="primary" id="heroCta1"></button>
+        <button id="heroCta2"></button>
+      </div>
+    </div>
+    <div class="scrollcue">↓</div>
+  </section>
+
+  <div class="story">
+    <div class="block" id="blk1">
+      <div class="eyebrow" id="b1eye"></div>
+      <h2 id="b1h"></h2>
+      <p class="lead" id="b1p"></p>
+      <div class="signals">
+        <div class="sigcard"><h3 id="s1h"></h3><p id="s1p"></p></div>
+        <div class="sigcard"><h3 id="s2h"></h3><p id="s2p"></p></div>
+        <div class="sigcard"><h3 id="s3h"></h3><p id="s3p"></p></div>
+      </div>
+    </div>
+    <div class="block" id="blk2">
+      <div class="eyebrow" id="b2eye"></div>
+      <div class="mission"><h2 id="b2h"></h2><p class="lead" id="b2p"></p></div>
+    </div>
+    <div class="block" id="blk3">
+      <div class="eyebrow" id="b3eye"></div>
+      <div class="privacy"><h2 id="b3h"></h2><p class="lead" id="b3p"></p></div>
+    </div>
+  </div>
+
+  <section class="app" id="app">
+    <div class="app-head">
+      <div class="eyebrow" id="appEye"></div>
+      <h2 id="appH"></h2>
+      <div class="datanote" id="dataNote"></div>
+    </div>
+
+    <label class="drop" id="drop" for="fileIn">
+      <p class="big" id="dropBig"></p>
+      <p class="lead" id="dropSub" style="margin:0 auto;max-width:460px;"></p>
+      <p class="sm" id="dropFmt"></p>
+    </label>
+    <input type="file" id="fileIn" accept=".txt,.csv,.json,.log,.tsv,.md,.xml,.yaml,.yml,.ini,.xlsx,.docx" />
+    <div id="fileWrap"></div>
+
+    <div class="panel hidden" id="resultsPanel">
+      <h3 id="foundH"></h3>
+      <div class="types" id="typeList"></div>
+    </div>
+
+    <div class="panel hidden" id="modePanel">
+      <h3 id="modeH"></h3>
+      <div class="modes">
+        <div class="mode on" id="modePh" data-mode="placeholder"><div class="mt" id="modePhT"></div><div class="md" id="modePhD"></div></div>
+        <div class="mode" id="modePs" data-mode="pseudonym"><div class="mt" id="modePsT"></div><div class="md" id="modePsD"></div></div>
+        <div class="mode" id="modeMk" data-mode="mask"><div class="mt" id="modeMkT"></div><div class="md" id="modeMkD"></div></div>
+      </div>
+      <div class="actionbar">
+        <button class="primary" id="btnGo" disabled></button>
+        <span class="status" id="status"></span>
+      </div>
+    </div>
+
+    <p class="hint" id="hint"></p>
+
+    <div class="handoff">
+      <div class="ho-txt">
+        <div class="eyebrow" id="hoEyebrow"></div>
+        <h3 id="hoH"></h3>
+        <p id="hoP"></p>
+      </div>
+      <a class="cta-fx" id="hoCta" href="https://github.com/silvestroparisi" target="_blank" rel="noopener"></a>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <button class="close" id="mClose">×</button>
+      <h3 id="m_h1"></h3>
+      <p id="m_p1"></p>
+      <h4 id="m_h2"></h4>
+      <p id="m_p2"></p>
+      <h4 id="m_h3"></h4>
+      <p id="m_p3"></p>
+      <h4 id="m_h4"></h4>
+      <p id="m_p4"></p>
+    </div>
+  </div>
+
+<script>
+"use strict";
+const byId=id=>document.getElementById(id);
+
+/* ---------- i18n ---------- */
+const I18N={
+ en:{
+  how:`ⓘ How it works`,
+  heroEyebrow:`PRIVACY-FIRST · RUNS IN YOUR BROWSER`,
+  heroH1a:`Strip out the sensitive bits.`,
+  heroH1b:`Then use AI and cloud freely.`,
+  heroSub:`MaskFew finds and removes personal data, secrets and identifiers from your files — entirely in your browser. Nothing is uploaded. You get the cleaned file back in the same format, ready for ChatGPT, a cloud drive, or a vendor.`,
+  heroCta1:`Anonymize a file`,
+  heroCta2:`How it works`,
+  b1eye:`THE TRAP`,
+  b1h:`You want the AI. You can't risk the data.`,
+  b1p:`Pasting a spreadsheet into ChatGPT, uploading a contract to a cloud tool, sending logs to a vendor — each one can leak names, fiscal codes, IBANs, API keys. The value is real, and so is the exposure. MaskFew removes what exposes you <b>before</b> the file leaves your hands.`,
+  s1h:`Personal data`,
+  s1p:`Names, emails, phone numbers, codice fiscale — the identifiers that turn a document into someone's record.`,
+  s2h:`Financial`,
+  s2p:`IBANs, credit card numbers, partita IVA — the data with direct, immediate consequences if it leaks.`,
+  s3h:`Secrets`,
+  s3p:`API keys, tokens, private keys left in configs and logs — a single one can hand over a whole system.`,
+  b2eye:`THE IDEA`,
+  b2h:`Clean it where it's safe — your own machine.`,
+  b2p:`There's only one place a sanitizer makes sense: locally. You can't upload a file to a website <b>to remove</b> its sensitive data. MaskFew does the detection and redaction in the page itself — deterministic patterns for structured data, optional consistent pseudonyms so the file still makes sense to an AI — and hands you back the same format. Free, open, built to be verified.`,
+  b3eye:`PRIVACY`,
+  b3h:`Your file never leaves this page.`,
+  b3p:`No upload, no server, no account. The only network request is the one that loaded this page and its libraries; your file is read, scanned and rewritten entirely in your browser's memory. Don't trust the claim — it's open source, read the code.`,
+  appEye:`ANONYMIZER`,
+  appH:`Anonymize a file`,
+  dataNote:`Best-effort, local-only. Deterministic detection reliably catches structured data (email, IBAN, codice fiscale, partita IVA, cards, IP, keys). It <b>reduces</b> risk — it does not <b>guarantee</b> zero leakage, and it does not yet catch free-text names. Always review the summary below before downloading. Supported: TXT · CSV · JSON · LOG · XLSX · DOCX.`,
+  dropBig:`Drop a file here, or click to choose`,
+  dropSub:`It stays in your browser — nothing is uploaded.`,
+  dropFmt:`TXT · CSV · JSON · LOG · XLSX · DOCX`,
+  foundH:`What was found — pick what to remove`,
+  modeH:`How to replace it`,
+  modePhT:`Placeholder`,
+  modePhD:`Replace with a tag like [EMAIL], [IBAN]. Simplest, fully removes the value.`,
+  modePsT:`Consistent pseudonym`,
+  modePsD:`Replace with EMAIL_1, EMAIL_2… same value → same label everywhere. Best for feeding to AI: structure survives, identity doesn't.`,
+  modeMkT:`Mask`,
+  modeMkD:`Keep the last 4 characters (••••6789). Useful when you still need a partial reference.`,
+  btnGo:`Anonymize & download ↓`,
+  hint:`Tip: <b>consistent pseudonym</b> is usually what you want before sending to an AI — the model can still reason about "PERSONA_1 paid AZIENDA_2" without ever seeing the real names. Everything runs offline once the page is loaded.`,
+  status_scanning:`Reading and scanning…`,
+  status_none:`No sensitive data detected with the current recognizers. Review manually before sharing.`,
+  status_ready:`Review the categories, choose a mode, then download.`,
+  status_working:`Anonymizing…`,
+  status_done:`Done — your cleaned file has been downloaded.`,
+  status_unsupported:`Unsupported file type.`,
+  status_liberr:`Library still loading — try again in a second.`,
+  hoEyebrow:`PART OF THE FEW TOOLKIT`,
+  hoH:`MaskFew is one of three. <span class="ac">FirstFew</span> prioritizes, <span class="ac">FixFew</span> remediates.`,
+  hoP:`A small family of free, open-source, privacy-first security tools that run entirely in your browser. Find them on GitHub.`,
+  hoCta:`See the toolkit →`,
+  footer:`Built by <b style="color:var(--txt)">Silvestro Parisi</b> · open source · runs entirely in your browser · part of the Few toolkit: <a href="https://github.com/silvestroparisi/FirstFew" target="_blank" rel="noopener">FirstFew</a> · <a href="https://github.com/silvestroparisi/FixFew" target="_blank" rel="noopener">FixFew</a>`,
+  m_h1:`How MaskFew works`,
+  m_p1:`You drop in a file. MaskFew reads it in your browser, finds sensitive data with a set of deterministic recognizers, lets you choose what to remove and how, and hands back the same file format with the data gone. Nothing is ever sent anywhere.`,
+  m_h2:`What it detects`,
+  m_p2:`Email · phone numbers · IBAN (checksum-validated) · codice fiscale · partita IVA (checksum-validated) · credit cards (Luhn-validated) · IPv4 addresses · secrets (AWS keys, JWTs, private-key blocks). Structured identifiers are caught with high precision; free-text names and addresses are not yet covered.`,
+  m_h3:`The three modes`,
+  m_p3:`<b>Placeholder</b> swaps each value for a tag. <b>Consistent pseudonym</b> swaps each unique value for a stable label (EMAIL_1…), so a document keeps its internal logic — ideal before sending to an AI. <b>Mask</b> keeps the last few characters for partial reference.`,
+  m_h4:`Honest limits`,
+  m_p4:`Detection is best-effort, never 100% — always review before sharing. Complex DOCX/XLSX (charts, macros, text split mid-word across runs) may not be fully covered. PDF and images (which need OCR) are deliberately left out of this version. Treat the output as "much safer", not "guaranteed clean".`
+ },
+ it:{
+  how:`ⓘ Come funziona`,
+  heroEyebrow:`PRIVACY-FIRST · GIRA NEL TUO BROWSER`,
+  heroH1a:`Togli i dati sensibili.`,
+  heroH1b:`Poi usa AI e cloud senza paura.`,
+  heroSub:`MaskFew trova e rimuove dati personali, segreti e identificatori dai tuoi file — interamente nel tuo browser. Niente viene caricato. Riavrai il file ripulito nello stesso formato, pronto per ChatGPT, un cloud o un fornitore.`,
+  heroCta1:`Anonimizza un file`,
+  heroCta2:`Come funziona`,
+  b1eye:`LA TRAPPOLA`,
+  b1h:`Vorresti l'AI. Non puoi rischiare i dati.`,
+  b1p:`Incollare un foglio in ChatGPT, caricare un contratto su un tool cloud, mandare i log a un fornitore — ognuna di queste cose può far uscire nomi, codici fiscali, IBAN, chiavi API. Il valore è reale, ma lo è anche l'esposizione. MaskFew rimuove ciò che ti espone <b>prima</b> che il file lasci le tue mani.`,
+  s1h:`Dati personali`,
+  s1p:`Nomi, email, numeri di telefono, codice fiscale — gli identificatori che trasformano un documento nella scheda di una persona.`,
+  s2h:`Finanziari`,
+  s2p:`IBAN, numeri di carta, partita IVA — i dati con conseguenze dirette e immediate se trapelano.`,
+  s3h:`Segreti`,
+  s3p:`Chiavi API, token, chiavi private lasciate in config e log — bastano da soli a consegnare un intero sistema.`,
+  b2eye:`L'IDEA`,
+  b2h:`Puliscilo dove è sicuro — sul tuo computer.`,
+  b2p:`C'è un solo posto dove un anonimizzatore ha senso: in locale. Non puoi caricare un file su un sito <b>per togliergli</b> i dati sensibili. MaskFew fa rilevamento e redazione dentro la pagina stessa — pattern deterministici per i dati strutturati, pseudonimi consistenti opzionali così il file ha ancora senso per un'AI — e ti ridà lo stesso formato. Gratuito, aperto, fatto per essere verificato.`,
+  b3eye:`PRIVACY`,
+  b3h:`Il tuo file non lascia mai questa pagina.`,
+  b3p:`Nessun upload, nessun server, nessun account. L'unica richiesta di rete è quella che ha caricato questa pagina e le sue librerie; il tuo file viene letto, analizzato e riscritto interamente nella memoria del tuo browser. Non fidarti sulla parola — è open source, leggi il codice.`,
+  appEye:`ANONIMIZZATORE`,
+  appH:`Anonimizza un file`,
+  dataNote:`Best-effort, solo in locale. Il rilevamento deterministico cattura in modo affidabile i dati strutturati (email, IBAN, codice fiscale, partita IVA, carte, IP, chiavi). <b>Riduce</b> il rischio — non <b>garantisce</b> fuga zero, e non rileva ancora i nomi in testo libero. Controlla sempre il riepilogo qui sotto prima di scaricare. Supportati: TXT · CSV · JSON · LOG · XLSX · DOCX.`,
+  dropBig:`Trascina un file qui, o clicca per sceglierlo`,
+  dropSub:`Resta nel tuo browser — niente viene caricato.`,
+  dropFmt:`TXT · CSV · JSON · LOG · XLSX · DOCX`,
+  foundH:`Cosa è stato trovato — scegli cosa rimuovere`,
+  modeH:`Come sostituirlo`,
+  modePhT:`Segnaposto`,
+  modePhD:`Sostituisce con un'etichetta tipo [EMAIL], [IBAN]. Il più semplice, rimuove del tutto il valore.`,
+  modePsT:`Pseudonimo consistente`,
+  modePsD:`Sostituisce con EMAIL_1, EMAIL_2… stesso valore → stessa etichetta ovunque. Ideale per darlo in pasto a un'AI: la struttura resta, l'identità no.`,
+  modeMkT:`Maschera`,
+  modeMkD:`Tiene le ultime 4 cifre (••••6789). Utile quando serve ancora un riferimento parziale.`,
+  btnGo:`Anonimizza e scarica ↓`,
+  hint:`Suggerimento: lo <b>pseudonimo consistente</b> è di solito quello che vuoi prima di mandare a un'AI — il modello può ancora ragionare su "PERSONA_1 ha pagato AZIENDA_2" senza vedere i nomi veri. Tutto gira offline una volta caricata la pagina.`,
+  status_scanning:`Lettura e analisi…`,
+  status_none:`Nessun dato sensibile rilevato con i recognizer attuali. Controlla a mano prima di condividere.`,
+  status_ready:`Rivedi le categorie, scegli una modalità, poi scarica.`,
+  status_working:`Anonimizzazione…`,
+  status_done:`Fatto — il file ripulito è stato scaricato.`,
+  status_unsupported:`Tipo di file non supportato.`,
+  status_liberr:`Libreria ancora in caricamento — riprova tra un secondo.`,
+  hoEyebrow:`PARTE DEL FEW TOOLKIT`,
+  hoH:`MaskFew è uno di tre. <span class="ac">FirstFew</span> prioritizza, <span class="ac">FixFew</span> mitiga.`,
+  hoP:`Una piccola famiglia di strumenti di sicurezza gratuiti, open source e privacy-first che girano interamente nel browser. Li trovi su GitHub.`,
+  hoCta:`Vedi il toolkit →`,
+  footer:`Creato da <b style="color:var(--txt)">Silvestro Parisi</b> · open source · gira interamente nel tuo browser · parte del Few toolkit: <a href="https://github.com/silvestroparisi/FirstFew" target="_blank" rel="noopener">FirstFew</a> · <a href="https://github.com/silvestroparisi/FixFew" target="_blank" rel="noopener">FixFew</a>`,
+  m_h1:`Come funziona MaskFew`,
+  m_p1:`Trascini un file. MaskFew lo legge nel browser, trova i dati sensibili con un insieme di recognizer deterministici, ti lascia scegliere cosa rimuovere e come, e ti ridà lo stesso formato di file con i dati spariti. Niente viene mai inviato da nessuna parte.`,
+  m_h2:`Cosa rileva`,
+  m_p2:`Email · numeri di telefono · IBAN (validato col checksum) · codice fiscale · partita IVA (validata col checksum) · carte di credito (validate con Luhn) · indirizzi IPv4 · segreti (chiavi AWS, JWT, blocchi di chiave privata). Gli identificatori strutturati sono catturati con alta precisione; nomi e indirizzi in testo libero non sono ancora coperti.`,
+  m_h3:`Le tre modalità`,
+  m_p3:`<b>Segnaposto</b> sostituisce ogni valore con un'etichetta. <b>Pseudonimo consistente</b> sostituisce ogni valore unico con un'etichetta stabile (EMAIL_1…), così il documento mantiene la sua logica interna — ideale prima di mandarlo a un'AI. <b>Maschera</b> tiene le ultime cifre per un riferimento parziale.`,
+  m_h4:`Limiti onesti`,
+  m_p4:`Il rilevamento è best-effort, mai al 100% — controlla sempre prima di condividere. DOCX/XLSX complessi (grafici, macro, testo spezzato a metà parola su più "run") possono non essere coperti del tutto. PDF e immagini (che richiedono OCR) sono volutamente esclusi da questa versione. Tratta il risultato come "molto più sicuro", non "garantito pulito".`
+ }
+};
+let LANG='en';
+const T=()=>I18N[LANG];
+
+function applyLang(){
+ const t=T();
+ const direct=['how','heroEyebrow','heroH1a','heroH1b','heroSub','heroCta1','heroCta2','b1eye','b1h','s1h','s2h','s3h','b2eye','b2h','b3eye','b3h','appEye','appH','dropBig','dropSub','dropFmt','foundH','modeH','modePhT','modePhD','modePsT','modePsD','modeMkT','modeMkD','btnGo','hoEyebrow','hoCta'];
+ direct.forEach(k=>{ const el=byId(k==='how'?'btnHow':k); if(el) el.textContent=t[k]; });
+ byId('btnHow').textContent=t.how;
+ // innerHTML ones
+ byId('b1p').innerHTML=t.b1p; byId('s1p').innerHTML=t.s1p; byId('s2p').innerHTML=t.s2p; byId('s3p').innerHTML=t.s3p;
+ byId('b2p').innerHTML=t.b2p; byId('b3p').innerHTML=t.b3p; byId('dataNote').innerHTML=t.dataNote;
+ byId('hint').innerHTML=t.hint; byId('footer').innerHTML=t.footer;
+ byId('hoH').innerHTML=t.hoH; byId('hoP').innerHTML=t.hoP;
+ ['m_h1','m_h2','m_h3','m_h4'].forEach(k=>byId(k).textContent=t[k]);
+ ['m_p1','m_p2','m_p3','m_p4'].forEach(k=>byId(k).innerHTML=t[k]);
+ if(LAST) renderResults();
+}
+
+/* ---------- theme + lang switches ---------- */
+function setLang(l){ LANG=l; byId('lgEn').classList.toggle('on',l==='en'); byId('lgIt').classList.toggle('on',l==='it'); document.documentElement.lang=l; applyLang(); }
+function setTheme(th){ document.documentElement.setAttribute('data-theme',th); byId('thDark').classList.toggle('on',th!=='light'); byId('thLight').classList.toggle('on',th==='light'); }
+byId('lgEn').onclick=()=>setLang('en'); byId('lgIt').onclick=()=>setLang('it');
+byId('thDark').onclick=()=>setTheme('dark'); byId('thLight').onclick=()=>setTheme('light');
+
+/* ---------- hero dotfield + reveal ---------- */
+(function(){ const df=byId('dotfield'); if(!df) return; let h='';
+ for(let i=0;i<46;i++){ const ac=Math.random()<0.12; h+=`<i class="${ac?'ac':''}" style="left:${(Math.random()*100).toFixed(1)}%;top:${(Math.random()*100).toFixed(1)}%"></i>`; }
+ df.innerHTML=h; })();
+const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); }),{threshold:.15});
+['blk1','blk2','blk3'].forEach(id=>{ const el=byId(id); if(el) io.observe(el); });
+
+/* ---------- modal ---------- */
+function openModal(){ byId('modalBg').classList.add('on'); }
+function closeModal(){ byId('modalBg').classList.remove('on'); }
+byId('btnHow').onclick=openModal; byId('heroCta2').onclick=openModal; byId('mClose').onclick=closeModal;
+byId('modalBg').onclick=e=>{ if(e.target===byId('modalBg')) closeModal(); };
+byId('heroCta1').onclick=()=>byId('app').scrollIntoView({behavior:'smooth'});
+
+/* ---------- detection engine ---------- */
+function luhn(s){ const d=String(s).replace(/\D/g,''); if(d.length<12||d.length>19) return false; let sum=0,alt=false; for(let i=d.length-1;i>=0;i--){ let n=+d[i]; if(alt){ n*=2; if(n>9) n-=9; } sum+=n; alt=!alt; } return sum%10===0; }
+function ibanCheck(s){ const v=String(s).replace(/\s/g,'').toUpperCase(); if(!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(v)) return false; const r=v.slice(4)+v.slice(0,4); let rem=0; for(const ch of r){ const code=(ch>='A'&&ch<='Z')?(ch.charCodeAt(0)-55):ch; rem=(rem*(String(code).length===2?100:10)+Number(code))%97; } return rem===1; }
+function pivaCheck(s){ const d=String(s).replace(/\D/g,''); if(d.length!==11) return false; let x=0,y=0; for(let i=0;i<11;i++){ const n=+d[i]; if(i%2===0) x+=n; else { let dd=n*2; if(dd>9) dd-=9; y+=dd; } } return (x+y)%10===0; }
+function ipCheck(s){ return s.split('.').every(o=>{ const n=+o; return o.length<=3 && n<=255; }); }
+
+const RECOG=[
+ {type:'secret', re:/-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z]+ )?PRIVATE KEY-----/g},
+ {type:'secret', re:/\bAKIA[0-9A-Z]{16}\b/g},
+ {type:'secret', re:/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g},
+ {type:'email',  re:/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g},
+ {type:'iban',   re:/\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/g, validate:ibanCheck},
+ {type:'card',   re:/\b(?:\d[ -]?){13,19}\b/g, validate:luhn},
+ {type:'cf',     re:/\b[A-Za-z]{6}\d{2}[A-Za-z]\d{2}[A-Za-z]\d{3}[A-Za-z]\b/g},
+ {type:'piva',   re:/\b\d{11}\b/g, validate:pivaCheck},
+ {type:'ip',     re:/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, validate:ipCheck},
+ {type:'phone',  re:/(?:\+\d{1,3}[ .\-]?)?(?:\(?\d{2,4}\)?[ .\-]?){2,4}\d{2,3}/g, validate:v=>{ const d=v.replace(/\D/g,''); return d.length>=8 && d.length<=13; }}
+];
+const TYPE_ORDER=['email','phone','cf','piva','iban','card','ip','secret'];
+const KEY={email:'EMAIL',phone:'TEL',cf:'CF',piva:'PIVA',iban:'IBAN',card:'CARD',ip:'IP',secret:'KEY'};
+const PH ={email:'EMAIL',phone:'PHONE',cf:'CODICE_FISCALE',piva:'PARTITA_IVA',iban:'IBAN',card:'CARD',ip:'IP',secret:'SECRET'};
+const TYPE_LABEL={
+ en:{email:'Email',phone:'Phone numbers',cf:'Codice fiscale',piva:'Partita IVA',iban:'IBAN',card:'Credit cards',ip:'IP addresses',secret:'Secrets / keys'},
+ it:{email:'Email',phone:'Numeri di telefono',cf:'Codice fiscale',piva:'Partita IVA',iban:'IBAN',card:'Carte di credito',ip:'Indirizzi IP',secret:'Segreti / chiavi'}
+};
+
+function findMatches(text, enabled){
+ const out=[];
+ for(const r of RECOG){ if(enabled && !enabled.has(r.type)) continue; r.re.lastIndex=0; let m;
+  while((m=r.re.exec(text))!==null){ const val=m[0];
+   if(m.index===r.re.lastIndex) r.re.lastIndex++;
+   if(r.validate && !r.validate(val)) continue;
+   out.push({start:m.index,end:m.index+val.length,type:r.type,value:val});
+  }
+ }
+ out.sort((a,b)=> a.start-b.start || (b.end-b.start)-(a.end-a.start));
+ const res=[]; let lastEnd=-1;
+ for(const x of out){ if(x.start>=lastEnd){ res.push(x); lastEnd=x.end; } }
+ return res;
+}
+function newState(){ return {seq:{},map:{}}; }
+function maskVal(v){ const s=String(v); if(s.length<=4) return '•'.repeat(s.length); return '•'.repeat(Math.max(2,Math.min(8,s.length-4)))+s.slice(-4); }
+function replacement(type,value,mode,state){
+ if(mode==='placeholder') return '['+PH[type]+']';
+ if(mode==='mask') return maskVal(value);
+ if(!state.map[type]) state.map[type]=new Map();
+ const mp=state.map[type]; if(mp.has(value)) return mp.get(value);
+ state.seq[type]=(state.seq[type]||0)+1; const lbl=KEY[type]+'_'+state.seq[type]; mp.set(value,lbl); return lbl;
+}
+function redactText(text, enabled, mode, state){
+ const ms=findMatches(text, enabled); if(!ms.length) return text;
+ let out='',i=0;
+ for(const x of ms){ out+=text.slice(i,x.start)+replacement(x.type,x.value,mode,state); i=x.end; }
+ return out+text.slice(i);
+}
+function scanCounts(text){ const ms=findMatches(text,null); const by={}; for(const x of ms){ (by[x.type]=by[x.type]||new Set()).add(x.value); } const r={}; for(const k in by) r[k]=by[k].size; return r; }
+
+/* ---------- xml helpers (docx) ---------- */
+function xmlUnescape(s){ return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&'); }
+function xmlEscape(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------- file handling ---------- */
+let LAST=null; // {file, ext, counts, text}
+let ENABLED=new Set(); let MODE='placeholder';
+
+function extOf(name){ const m=/\.([a-z0-9]+)$/i.exec(name); return m?m[1].toLowerCase():''; }
+const TEXT_EXT=['txt','csv','json','log','tsv','md','xml','yaml','yml','ini'];
+function outName(name){ const i=name.lastIndexOf('.'); return i<0?name+'-anon':name.slice(0,i)+'-anon'+name.slice(i); }
+function dl(name, blob){ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },1500); }
+
+async function extractText(file, ext){
+ if(TEXT_EXT.includes(ext)) return await file.text();
+ if(ext==='xlsx'){ const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}); let parts=[]; wb.SheetNames.forEach(sn=>{ const ws=wb.Sheets[sn]; for(const a in ws){ if(a[0]==='!') continue; const c=ws[a]; if(typeof c.v==='string') parts.push(c.v); } }); return parts.join('\n'); }
+ if(ext==='docx'){ const zip=await JSZip.loadAsync(await file.arrayBuffer()); const targets=Object.keys(zip.files).filter(p=>/^word\/(document|header\d*|footer\d*|comments|footnotes|endnotes)\.xml$/.test(p)); let parts=[]; for(const p of targets){ const xml=await zip.file(p).async('string'); let m; const re=/<w:t[^>]*>([\s\S]*?)<\/w:t>/g; while((m=re.exec(xml))!==null) parts.push(xmlUnescape(m[1])); } return parts.join(' '); }
+ return null;
+}
+async function buildOutput(file, ext, enabled, mode){
+ const state=newState();
+ if(TEXT_EXT.includes(ext)){ const red=redactText(await file.text(), enabled, mode, state); return new Blob([red],{type:'text/plain;charset=utf-8'}); }
+ if(ext==='xlsx'){ const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}); wb.SheetNames.forEach(sn=>{ const ws=wb.Sheets[sn]; for(const a in ws){ if(a[0]==='!') continue; const c=ws[a]; if(typeof c.v==='string'){ const nv=redactText(c.v, enabled, mode, state); if(nv!==c.v){ c.v=nv; c.t='s'; if(c.w!==undefined) delete c.w; if(c.f!==undefined) delete c.f; } } } }); const out=XLSX.write(wb,{bookType:'xlsx',type:'array'}); return new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}); }
+ if(ext==='docx'){ const zip=await JSZip.loadAsync(await file.arrayBuffer()); const targets=Object.keys(zip.files).filter(p=>/^word\/(document|header\d*|footer\d*|comments|footnotes|endnotes)\.xml$/.test(p)); for(const p of targets){ let xml=await zip.file(p).async('string'); xml=xml.replace(/(<w:t[^>]*>)([\s\S]*?)(<\/w:t>)/g,(full,o,inner,c)=>{ const red=redactText(xmlUnescape(inner), enabled, mode, state); return o+xmlEscape(red)+c; }); zip.file(p,xml); } return await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}); }
+ return null;
+}
+
+function renderResults(){
+ const t=T(); const lab=TYPE_LABEL[LANG]; const list=byId('typeList'); list.innerHTML='';
+ const counts=LAST.counts; let any=false;
+ TYPE_ORDER.forEach(type=>{ const n=counts[type]||0; if(n===0 && !ENABLED.has(type)) {} ; const chip=document.createElement('div'); const on=ENABLED.has(type); chip.className='typechip'+(on?'':' off')+(n===0?' zero':'');
+  chip.innerHTML=`<div class="cb">${on?'✓':''}</div><div class="nm">${lab[type]}</div><div class="ct">${n}</div>`;
+  chip.onclick=()=>{ if(ENABLED.has(type)) ENABLED.delete(type); else ENABLED.add(type); renderResults(); updateGo(); };
+  if(n>0||on) { list.appendChild(chip); any=true; } });
+ if(!any){ list.innerHTML=`<p class="lead" style="grid-column:1/-1">${t.status_none}</p>`; }
+ byId('foundH').textContent=t.foundH;
+}
+function updateGo(){ const t=T(); const btn=byId('btnGo'); const has=[...ENABLED].some(ty=>(LAST.counts[ty]||0)>0); btn.disabled=!has; }
+
+async function onFile(file){
+ if(!file) return; const ext=extOf(file.name); const t=T();
+ if(!TEXT_EXT.includes(ext) && ext!=='xlsx' && ext!=='docx'){ byId('status').textContent=t.status_unsupported; return; }
+ if((ext==='xlsx' && typeof XLSX==='undefined') || (ext==='docx' && typeof JSZip==='undefined')){ byId('status').textContent=t.status_liberr; return; }
+ byId('fileWrap').innerHTML=`<div class="filebadge"><span>📄 ${file.name}</span><span class="x" id="clrFile">×</span></div>`;
+ byId('clrFile').onclick=clearFile;
+ byId('resultsPanel').classList.remove('hidden'); byId('modePanel').classList.remove('hidden');
+ byId('status').textContent=t.status_scanning;
+ try{
+  const text=await extractText(file, ext); const counts=scanCounts(text||'');
+  LAST={file,ext,counts}; ENABLED=new Set(Object.keys(counts).filter(k=>counts[k]>0));
+  renderResults(); updateGo();
+  byId('status').textContent=Object.keys(counts).length?t.status_ready:t.status_none;
+ }catch(e){ byId('status').textContent='Error: '+e.message; }
+}
+function clearFile(){ LAST=null; ENABLED=new Set(); byId('fileWrap').innerHTML=''; byId('fileIn').value=''; byId('resultsPanel').classList.add('hidden'); byId('modePanel').classList.add('hidden'); byId('status').textContent=''; }
+
+byId('fileIn').addEventListener('change',e=>onFile(e.target.files[0]));
+const drop=byId('drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
+
+document.querySelectorAll('.mode').forEach(m=>m.onclick=()=>{ document.querySelectorAll('.mode').forEach(x=>x.classList.remove('on')); m.classList.add('on'); MODE=m.dataset.mode; });
+
+byId('btnGo').onclick=async()=>{
+ if(!LAST) return; const t=T(); byId('btnGo').disabled=true; byId('status').textContent=t.status_working;
+ try{ const blob=await buildOutput(LAST.file, LAST.ext, ENABLED, MODE); dl(outName(LAST.file.name), blob); byId('status').textContent=t.status_done; }
+ catch(e){ byId('status').textContent='Error: '+e.message; }
+ byId('btnGo').disabled=false; updateGo();
+};
+
+/* ---------- init ---------- */
+setTheme('dark'); setLang('en');
+</script>
+</body>
+</html>

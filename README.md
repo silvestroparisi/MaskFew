@@ -23,7 +23,7 @@ This is the core design choice:
 
 - Your file is read, scanned and rewritten **entirely in your browser's memory**. Nothing is uploaded, there is no server and no account.
 - The only network requests are the ones that load this page and its libraries from a CDN — a spreadsheet reader, a zip reader, and (only when you scan an image or PDF) an OCR engine and PDF tools. **Never your file.**
-- Don't trust the claim? You don't have to — read every line in `index.html`.
+- Don't trust the claim? You don't have to — it's open source. Open your browser's DevTools → Network and watch: your file never leaves your device.
 
 ## What it detects
 

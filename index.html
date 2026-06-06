@@ -217,6 +217,7 @@
       <div class="viscontrols">
         <button id="btnScan" class="primary"></button>
         <div class="seg"><button id="styBox" class="on"></button><button id="styBlur"></button></div>
+        <button id="btnRotate"></button>
         <button id="btnManual"></button>
         <button id="btnClearBoxes"></button>
       </div>
@@ -313,9 +314,10 @@ const I18N={
   sty_box:`Black box`,
   sty_blur:`Blur`,
   vis_manual:`Draw box`,
-  vis_clear:`Clear boxes`,
+  vis_clear:`Clear all`,
+  vis_rotate:`Rotate 90°`,
   vis_go:`Anonymize & download ↓`,
-  vis_note:`Detection runs OCR (Tesseract) in your browser — accuracy depends on image quality, so always add anything it missed by hand with "Draw box" (drag to add, click a box to remove). Output is a PNG; image metadata (EXIF/GPS) is stripped on export.`,
+  vis_note:`Detection runs OCR (Tesseract) in your browser — accuracy depends on image quality. Click any highlighted box to remove a wrong one; turn on "Draw box" to add what was missed by dragging. Output is a PNG; image metadata (EXIF/GPS) is stripped on export.`,
   vis_status_loaded:`Image loaded. Scan for text, or draw boxes by hand, then download.`,
   vis_status_ocr:`Reading text (OCR)…`,
   vis_status_none:`No sensitive text detected — draw any regions by hand before downloading.`,
@@ -384,9 +386,10 @@ const I18N={
   sty_box:`Box nero`,
   sty_blur:`Blur`,
   vis_manual:`Disegna box`,
-  vis_clear:`Pulisci box`,
+  vis_clear:`Pulisci tutto`,
+  vis_rotate:`Ruota 90°`,
   vis_go:`Anonimizza e scarica ↓`,
-  vis_note:`Il rilevamento usa l'OCR (Tesseract) nel tuo browser — la precisione dipende dalla qualità dell'immagine, quindi aggiungi sempre a mano ciò che manca con "Disegna box" (trascina per aggiungere, clicca un box per rimuoverlo). L'output è un PNG; i metadati dell'immagine (EXIF/GPS) vengono azzerati all'export.`,
+  vis_note:`Il rilevamento usa l'OCR (Tesseract) nel tuo browser — la precisione dipende dalla qualità dell'immagine. Clicca un box evidenziato per rimuoverne uno sbagliato; attiva "Disegna box" per aggiungere a mano, trascinando, ciò che manca. L'output è un PNG; i metadati dell'immagine (EXIF/GPS) vengono azzerati all'export.`,
   vis_status_loaded:`Immagine caricata. Cerca il testo, o disegna i box a mano, poi scarica.`,
   vis_status_ocr:`Lettura testo (OCR)…`,
   vis_status_none:`Nessun testo sensibile rilevato — disegna a mano le aree prima di scaricare.`,
@@ -420,7 +423,7 @@ function applyLang(){
  byId('hoH').innerHTML=t.hoH; byId('hoP').innerHTML=t.hoP;
  ['m_h1','m_h2','m_h3','m_h4'].forEach(k=>byId(k).textContent=t[k]);
  ['m_p1','m_p2','m_p3','m_p4'].forEach(k=>byId(k).innerHTML=t[k]);
- byId('visH').textContent=t.vis_h; byId('btnScan').textContent=t.vis_scan; byId('styBox').textContent=t.sty_box; byId('styBlur').textContent=t.sty_blur; byId('btnManual').textContent=t.vis_manual; byId('btnClearBoxes').textContent=t.vis_clear; byId('btnGoVis').textContent=t.vis_go; byId('visNote').textContent=t.vis_note;
+ byId('visH').textContent=t.vis_h; byId('btnScan').textContent=t.vis_scan; byId('styBox').textContent=t.sty_box; byId('styBlur').textContent=t.sty_blur; byId('btnManual').textContent=t.vis_manual; byId('btnClearBoxes').textContent=t.vis_clear; byId('btnRotate').textContent=t.vis_rotate; byId('btnGoVis').textContent=t.vis_go; byId('visNote').textContent=t.vis_note;
  if(LAST) renderResults();
 }
 
@@ -636,18 +639,28 @@ function exportImage(){
  IMG.cur=null; drawCanvas(true);
  byId('vcanvas').toBlob(b=>{ dl(outNameImg(IMG.file.name),b); drawCanvas(false); byId('visStatus').textContent=t.status_done; byId('btnGoVis').disabled=false; },'image/png');
 }
+function rotate90(){
+ if(!IMG.img) return; const src=IMG.img, w=src.naturalWidth, h=src.naturalHeight;
+ const off=document.createElement('canvas'); off.width=h; off.height=w;
+ const o=off.getContext('2d'); o.translate(off.width,0); o.rotate(Math.PI/2); o.drawImage(src,0,0);
+ const rot=new Image();
+ rot.onload=()=>{ IMG.img=rot; IMG.boxes=[]; IMG.cur=null; const c=byId('vcanvas'); c.width=rot.naturalWidth; c.height=rot.naturalHeight; drawCanvas(false); byId('visStatus').textContent=(LANG==='it'?'Immagine ruotata — premi Scan, o disegna i box.':'Image rotated — scan again, or draw boxes.'); };
+ rot.src=off.toDataURL('image/png');
+}
 function wireImage(){
- byId('btnScan').onclick=runScan; byId('btnGoVis').onclick=exportImage;
+ byId('btnScan').onclick=runScan; byId('btnGoVis').onclick=exportImage; byId('btnRotate').onclick=rotate90;
  byId('styBox').onclick=()=>{ IMG.style='box'; byId('styBox').classList.add('on'); byId('styBlur').classList.remove('on'); drawCanvas(false); };
  byId('styBlur').onclick=()=>{ IMG.style='blur'; byId('styBlur').classList.add('on'); byId('styBox').classList.remove('on'); drawCanvas(false); };
  byId('btnManual').onclick=()=>{ IMG.manual=!IMG.manual; byId('btnManual').classList.toggle('on',IMG.manual); byId('vcanvas').classList.toggle('draw',IMG.manual); };
  byId('btnClearBoxes').onclick=()=>{ IMG.boxes=[]; IMG.cur=null; drawCanvas(false); };
  const c=byId('vcanvas');
- const down=e=>{ if(!IMG.manual||!IMG.img) return; e.preventDefault(); const p=vXY(e); IMG.drawing=true; IMG.sx=p.x; IMG.sy=p.y; IMG.cur={x:p.x,y:p.y,w:0,h:0}; };
- const move=e=>{ if(!IMG.drawing) return; e.preventDefault(); const p=vXY(e); IMG.cur={x:IMG.sx,y:IMG.sy,w:p.x-IMG.sx,h:p.y-IMG.sy}; drawCanvas(false); };
- const up=e=>{ if(!IMG.manual||!IMG.img||!IMG.drawing) return; IMG.drawing=false; const r=norm(IMG.cur||{x:0,y:0,w:0,h:0}); const p=vXY(e); IMG.cur=null;
-   if(r.w>4&&r.h>4){ IMG.boxes.push(r); } else { const i=IMG.boxes.findIndex(b=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h); if(i>=0) IMG.boxes.splice(i,1); }
-   drawCanvas(false); };
+ let pX=0,pY=0,pressed=false;
+ const hitBox=p=>{ for(let k=IMG.boxes.length-1;k>=0;k--){ const b=IMG.boxes[k]; if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h) return k; } return -1; };
+ const down=e=>{ if(!IMG.img) return; const p=vXY(e); pressed=true; pX=p.x; pY=p.y; if(IMG.manual && hitBox(p)<0){ e.preventDefault(); IMG.drawing=true; IMG.sx=p.x; IMG.sy=p.y; IMG.cur={x:p.x,y:p.y,w:0,h:0}; } };
+ const move=e=>{ if(!pressed||!IMG.drawing) return; e.preventDefault(); const p=vXY(e); IMG.cur={x:IMG.sx,y:IMG.sy,w:p.x-IMG.sx,h:p.y-IMG.sy}; drawCanvas(false); };
+ const up=e=>{ if(!IMG.img||!pressed) return; pressed=false; const p=vXY(e); const moved=Math.abs(p.x-pX)>4||Math.abs(p.y-pY)>4;
+   if(IMG.drawing && moved){ IMG.drawing=false; const r=norm(IMG.cur||{x:0,y:0,w:0,h:0}); IMG.cur=null; if(r.w>4&&r.h>4) IMG.boxes.push(r); drawCanvas(false); return; }
+   IMG.drawing=false; IMG.cur=null; const k=hitBox(p); if(k>=0){ IMG.boxes.splice(k,1); drawCanvas(false); } };
  c.addEventListener('mousedown',down); c.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
  c.addEventListener('touchstart',down,{passive:false}); c.addEventListener('touchmove',move,{passive:false}); c.addEventListener('touchend',up);
 }

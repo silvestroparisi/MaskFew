@@ -91,10 +91,10 @@ Spreadsheet read/write: [SheetJS](https://sheetjs.com/). DOCX (zip) handling: [J
 
 ## The Few toolkit
 
-- [**FirstFew**](https://github.com/silvestroparisi/FirstFew) — prioritize the few that matter
-- [**FixFew**](https://github.com/silvestroparisi/FixFew) — verify and remediate
+- [**FirstFew**](https://silvestroparisi.github.io/FirstFew/) — prioritize the few that matter
+- [**FixFew**](https://silvestroparisi.github.io/FixFew/) — verify and remediate
 - **MaskFew** — anonymize a file before you share it
-- [**AskFew**](https://github.com/silvestroparisi/AskFew) — a private AI that runs in your browser
+- [**AskFew**](https://silvestroparisi.github.io/AskFew/) — a private AI that runs in your browser
 
 ## License
 

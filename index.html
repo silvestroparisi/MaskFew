@@ -132,6 +132,17 @@
   .modal code{background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--accent);font-size:12px;}
   .modal .close{position:absolute;top:18px;right:18px;background:none;border:none;color:var(--txt-faint);font-size:22px;padding:4px 8px;}
   .modal .close:hover{color:var(--danger);border:none;}
+  .famly{max-width:900px;margin:0 auto;padding:8px 22px 4px;}
+  .famly-h{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--txt-faint);margin:0 0 11px;}
+  .famly-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+  @media(max-width:620px){.famly-grid{grid-template-columns:1fr;}}
+  .famcard{display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 28px 12px 14px;text-decoration:none;transition:.15s;position:relative;}
+  .famcard::after{content:"→";position:absolute;top:12px;right:13px;color:var(--txt-faint);font-size:12px;transition:.15s;}
+  .famcard:hover{border-color:var(--accent);transform:translateY(-2px);}
+  .famcard:hover::after{color:var(--accent);transform:translateX(2px);}
+  .famname{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;color:var(--txt);}
+  .famname .ac{color:var(--accent);}
+  .famtag{font-size:11.5px;color:var(--txt-dim);line-height:1.4;}
 </style>
 </head>
 <body>
@@ -235,7 +246,25 @@
     </div>
 
     <p class="hint" id="hint"></p>
+
+    <div class="handoff">
+      <div class="ho-txt">
+        <div class="eyebrow" id="hoEyebrow"></div>
+        <h3 id="hoH"></h3>
+        <p id="hoP"></p>
+      </div>
+      <a class="cta-fx" id="hoCta" href="https://silvestroparisi.github.io/AskFew/" target="_blank" rel="noopener"></a>
+    </div>
   </section>
+
+  <div class="famly">
+    <div class="famly-h" id="famlyH"></div>
+    <div class="famly-grid">
+      <a class="famcard" href="https://silvestroparisi.github.io/FirstFew/" target="_blank" rel="noopener"><span class="famname">First<span class="ac">Few</span></span><span class="famtag" id="famFirst"></span></a>
+      <a class="famcard" href="https://silvestroparisi.github.io/FixFew/" target="_blank" rel="noopener"><span class="famname">Fix<span class="ac">Few</span></span><span class="famtag" id="famFix"></span></a>
+      <a class="famcard" href="https://silvestroparisi.github.io/AskFew/" target="_blank" rel="noopener"><span class="famname">Ask<span class="ac">Few</span></span><span class="famtag" id="famAsk"></span></a>
+    </div>
+  </div>
 
   <footer id="footer"></footer>
 
@@ -317,7 +346,15 @@ const I18N={
   vis_status_loaded:`Image loaded. Scan for text, or draw boxes by hand, then download.`,
   vis_status_ocr:`Reading text (OCR)…`,
   vis_status_none:`No sensitive text detected — draw any regions by hand before downloading.`,
-  footer:`<div style="margin-bottom:9px"><b style="color:var(--txt)">The Few toolkit</b> · <a href="https://github.com/silvestroparisi/FirstFew" target="_blank" rel="noopener">FirstFew</a> · <a href="https://github.com/silvestroparisi/FixFew" target="_blank" rel="noopener">FixFew</a> · MaskFew · <a href="https://github.com/silvestroparisi/AskFew" target="_blank" rel="noopener">AskFew</a></div>Built by <b style="color:var(--txt)">Silvestro Parisi</b> · open source · runs entirely in your browser.`,
+  famlyH:`The rest of the Few toolkit`,
+  famFirst:`Prioritize the few that matter.`,
+  famFix:`Fix the few — verified.`,
+  famAsk:`A private AI, in your browser.`,
+  ho_eyebrow:`ONE STEP FURTHER`,
+  ho_h:`Want what you <span class="ac">ask</span> to stay private too?`,
+  ho_p:`MaskFew makes a file safe to share with a cloud AI. But if you'd rather not share it at all, ask a local one — AskFew runs entirely in your browser. You can even drop in the file you just cleaned (not that you need to: nothing leaves your device anyway).`,
+  ho_cta:`Open AskFew →`,
+  footer:`Built by <b style="color:var(--txt)">Silvestro Parisi</b> · open source · runs entirely in your browser.<div style="margin-top:9px">More from me on <a href="https://github.com/silvestroparisi" target="_blank" rel="noopener">github.com/silvestroparisi</a></div>`,
   m_h1:`How MaskFew works`,
   m_p1:`You drop in a file. MaskFew reads it in your browser, finds sensitive data with a set of deterministic recognizers, lets you choose what to remove and how, and hands back the same file format with the data gone. Nothing is ever sent anywhere.`,
   m_h2:`What it detects`,
@@ -385,7 +422,15 @@ const I18N={
   vis_status_loaded:`Immagine caricata. Cerca il testo, o disegna i box a mano, poi scarica.`,
   vis_status_ocr:`Lettura testo (OCR)…`,
   vis_status_none:`Nessun testo sensibile rilevato — disegna a mano le aree prima di scaricare.`,
-  footer:`<div style="margin-bottom:9px"><b style="color:var(--txt)">Il toolkit Few</b> · <a href="https://github.com/silvestroparisi/FirstFew" target="_blank" rel="noopener">FirstFew</a> · <a href="https://github.com/silvestroparisi/FixFew" target="_blank" rel="noopener">FixFew</a> · MaskFew · <a href="https://github.com/silvestroparisi/AskFew" target="_blank" rel="noopener">AskFew</a></div>Creato da <b style="color:var(--txt)">Silvestro Parisi</b> · open source · gira interamente nel tuo browser.`,
+  famlyH:`Il resto del toolkit Few`,
+  famFirst:`Prioritizza i pochi che contano.`,
+  famFix:`Sistema i pochi — verificati.`,
+  famAsk:`Un'AI privata, nel browser.`,
+  ho_eyebrow:`UN PASSO IN PIÙ`,
+  ho_h:`Vuoi che anche quello che <span class="ac">chiedi</span> resti privato?`,
+  ho_p:`MaskFew rende un file sicuro da dare a un'AI cloud. Ma se preferisci non condividerlo affatto, chiedi a una locale — AskFew gira interamente nel tuo browser. Puoi anche allegare il file appena ripulito (non che serva: tanto non esce niente dal dispositivo).`,
+  ho_cta:`Apri AskFew →`,
+  footer:`Creato da <b style="color:var(--txt)">Silvestro Parisi</b> · open source · gira interamente nel tuo browser.<div style="margin-top:9px">Altro da me su <a href="https://github.com/silvestroparisi" target="_blank" rel="noopener">github.com/silvestroparisi</a></div>`,
   m_h1:`Come funziona MaskFew`,
   m_p1:`Trascini un file. MaskFew lo legge nel browser, trova i dati sensibili con un insieme di recognizer deterministici, ti lascia scegliere cosa rimuovere e come, e ti ridà lo stesso formato di file con i dati spariti. Niente viene mai inviato da nessuna parte.`,
   m_h2:`Cosa rileva`,
@@ -408,6 +453,8 @@ function applyLang(){
  byId('b1p').innerHTML=t.b1p; byId('s1p').innerHTML=t.s1p; byId('s2p').innerHTML=t.s2p; byId('s3p').innerHTML=t.s3p;
  byId('b2p').innerHTML=t.b2p; byId('b3p').innerHTML=t.b3p; byId('dataNote').innerHTML=t.dataNote;
  byId('hint').innerHTML=t.hint; byId('footer').innerHTML=t.footer;
+ byId('famlyH').textContent=t.famlyH; byId('famFirst').textContent=t.famFirst; byId('famFix').textContent=t.famFix; byId('famAsk').textContent=t.famAsk;
+ byId('hoEyebrow').textContent=t.ho_eyebrow; byId('hoH').innerHTML=t.ho_h; byId('hoP').innerHTML=t.ho_p; byId('hoCta').textContent=t.ho_cta;
  ['m_h1','m_h2','m_h3','m_h4'].forEach(k=>byId(k).textContent=t[k]);
  ['m_p1','m_p2','m_p3','m_p4'].forEach(k=>byId(k).innerHTML=t[k]);
  byId('visH').textContent=t.vis_h; byId('btnScan').textContent=t.vis_scan; byId('styBox').textContent=t.sty_box; byId('styBlur').textContent=t.sty_blur; byId('btnManual').textContent=t.vis_manual; byId('btnClearBoxes').textContent=t.vis_clear; byId('btnRotate').textContent=t.vis_rotate; byId('btnGoVis').textContent=t.vis_go; byId('visNote').textContent=t.vis_note;

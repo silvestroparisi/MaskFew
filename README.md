@@ -22,7 +22,7 @@ There's only one place a sanitizer makes sense: **locally**. You can't upload a 
 This is the core design choice:
 
 - Your file is read, scanned and rewritten **entirely in your browser's memory**. Nothing is uploaded, there is no server and no account.
-- The only network requests are the ones that load this page and its two libraries (a spreadsheet reader and a zip reader) from a CDN — **never your file**.
+- The only network requests are the ones that load this page and its libraries from a CDN — a spreadsheet reader, a zip reader, and (only when you scan an image or PDF) an OCR engine and PDF tools. **Never your file.**
 - Don't trust the claim? You don't have to — read every line in `index.html`.
 
 ## What it detects
@@ -32,7 +32,8 @@ Deterministic recognizers, high precision on structured data:
 | type | notes |
 |---|---|
 | **Email** | standard addresses |
-| **Phone** | international / Italian formats, 8–13 digits |
+| **Phone** | Italian / international formats, 9–13 digits; skips dates and document numbers |
+| **Address** | Italian street lines (`Via`, `Piazza`, `Corso`… + civic number) — heuristic |
 | **IBAN** | validated with the mod-97 checksum |
 | **Codice fiscale** | 16-character Italian tax code |
 | **Partita IVA** | 11-digit Italian VAT, checksum-validated |
@@ -50,11 +51,13 @@ Each category is shown with a count and can be toggled on/off before you redact.
 
 ## Supported formats
 
-**TXT · CSV · JSON · LOG** (and other plain-text: `tsv`, `md`, `xml`, `yaml`, `ini`) · **XLSX** · **DOCX**
+**TXT · CSV · JSON · LOG** (and other plain-text: `tsv`, `md`, `xml`, `yaml`, `ini`) · **XLSX** · **DOCX** · **Images** (PNG, JPG, WEBP, GIF, BMP) · **PDF**
 
 The cleaned file comes back in the same format. For XLSX and DOCX the document structure is preserved; redaction happens on the text content (and, for DOCX, in headers, footers, comments and notes).
 
-**Not in this version (deliberately):** PDF and images (which need OCR for safe redaction), IPv6, and free-text names/addresses (which need NLP, not patterns).
+For **images** and **PDF** the flow is visual: MaskFew runs OCR **in your browser** to read the text, then draws redaction boxes over the sensitive regions for you to review. You can add boxes by hand (drag), remove any box (click it), switch between solid black and blur, and rotate. PDFs add page-by-page navigation and are scanned across **all** pages. Images export as PNG (EXIF metadata stripped); PDFs are rebuilt into a fresh, rasterized PDF (original metadata dropped). Note: a rasterized PDF loses its selectable text layer — that's deliberate, so nothing hidden in the text layer can slip through.
+
+**Not covered (deliberately):** free-text **names** — automatic name detection in prose is too false-positive-prone, so for name-heavy documents (legal letters, contracts) use the manual box tool. Also out of scope: **IPv6**, and address detection is **heuristic** (it catches typical Italian street lines, not every format).
 
 ## How to use
 
@@ -65,9 +68,11 @@ The cleaned file comes back in the same format. For XLSX and DOCX the document s
 
 Once the page has loaded, everything works offline.
 
+For **images and PDFs** the steps are visual instead: click **Scan** to OCR the file and auto-box the sensitive regions, review them (drag to add a box, click a box to remove it), pick **box** or **blur**, then **Anonymize & download**. For PDFs, page through with ◀ ▶ before exporting.
+
 ## Important
 
-MaskFew is **best-effort**, never a guarantee. Deterministic detection reliably catches structured identifiers, but it does **not** catch everything — free-text names are not covered, and complex DOCX/XLSX (charts, macros, text split mid-word across runs) may slip through. It **reduces** risk; it does not certify a file as clean. **Always review the summary, and the file, before sharing it.**
+MaskFew is **best-effort**, never a guarantee. Deterministic detection reliably catches structured identifiers, but it does **not** catch everything — free-text names are not covered, address detection is heuristic, OCR on images and PDFs depends on scan quality, and complex DOCX/XLSX (charts, macros, text split mid-word across runs) may slip through. It **reduces** risk; it does not certify a file as clean. The visual review for images and PDFs — checking, adding and removing boxes by hand — is part of the intended workflow, not a fallback. **Always review the summary (or the boxes), and the file, before sharing it.**
 
 ## Run it yourself
 
@@ -82,7 +87,7 @@ Works in any modern browser. No build, no dependencies to install.
 ## Tech
 
 Vanilla HTML / CSS / JavaScript, no framework, no build.
-Spreadsheet read/write: [SheetJS](https://sheetjs.com/). DOCX (zip) handling: [JSZip](https://stuk.github.io/jszip/). Both loaded from CDN; your data never touches them remotely.
+Spreadsheet read/write: [SheetJS](https://sheetjs.com/). DOCX (zip) handling: [JSZip](https://stuk.github.io/jszip/). OCR: [Tesseract.js](https://tesseract.projectnaptha.com/). PDF rendering: [pdf.js](https://mozilla.github.io/pdf.js/); PDF assembly: [pdf-lib](https://pdf-lib.js.org/). All loaded from CDN, on demand (OCR and PDF tools only when you open an image or PDF); your data never touches them remotely.
 
 ## The Few toolkit
 

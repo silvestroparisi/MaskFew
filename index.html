@@ -191,7 +191,7 @@
       <p class="lead" id="dropSub" style="margin:0 auto;max-width:460px;"></p>
       <p class="sm" id="dropFmt"></p>
     </label>
-    <input type="file" id="fileIn" accept=".txt,.csv,.json,.log,.tsv,.md,.xml,.yaml,.yml,.ini,.xlsx,.docx,.png,.jpg,.jpeg,.webp,.gif,.bmp" />
+    <input type="file" id="fileIn" accept=".txt,.csv,.json,.log,.tsv,.md,.xml,.yaml,.yml,.ini,.xlsx,.docx,.png,.jpg,.jpeg,.webp,.gif,.bmp,.pdf" />
     <div id="fileWrap"></div>
 
     <div class="panel hidden" id="resultsPanel">
@@ -220,6 +220,11 @@
         <button id="btnRotate"></button>
         <button id="btnManual"></button>
         <button id="btnClearBoxes"></button>
+      </div>
+      <div class="viscontrols hidden" id="pdfNav">
+        <button id="pdfPrev">◀</button>
+        <span class="status" id="pdfLabel"></span>
+        <button id="pdfNext">▶</button>
       </div>
       <div class="canvaswrap"><canvas id="vcanvas"></canvas></div>
       <p class="visnote" id="visNote"></p>
@@ -463,7 +468,7 @@ const RECOG=[
  {type:'cf',     re:/\b[A-Za-z]{6}\d{2}[A-Za-z]\d{2}[A-Za-z]\d{3}[A-Za-z]\b/g},
  {type:'piva',   re:/\b\d{11}\b/g, validate:pivaCheck},
  {type:'ip',     re:/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, validate:ipCheck},
- {type:'phone',  re:/(?:\+\d{1,3}[ .\-\/]?)?(?:\(?\d{2,4}\)?[ .\-\/]?){2,4}\d{2,3}/g, validate:v=>{ const d=v.replace(/\D/g,''); return d.length>=9 && d.length<=13; }},
+ {type:'phone',  re:/(?:\+\d{1,3}[ .\-\/]?)?(?:\(?\d{2,4}\)?[ .\-\/]?){2,4}\d{2,3}/g, validate:(v,text,idx)=>{ const d=v.replace(/\D/g,''); if(d.length<9||d.length>13) return false; const prev=idx>0?text[idx-1]:''; return !/[A-Za-z\/]/.test(prev); }},
  {type:'address', re:/\b(?:Via|Viale|V\.le|Piazza|P\.zza|P\.za|Corso|C\.so|Largo|L\.go|Vicolo|Strada|Borgo|Località|Loc\.|Contrada|C\.da|Lungomare|Salita|Traversa|Galleria|Riviera)\s+[A-Za-zÀ-ÿ'’.\- ]{2,40}?\s+\d{1,4}(?:[\/\-]?[A-Za-z])?\b/g}
 ];
 const TYPE_ORDER=['email','phone','address','cf','piva','iban','card','ip','secret'];
@@ -479,7 +484,7 @@ function findMatches(text, enabled, lenient){
  for(const r of RECOG){ if(enabled && !enabled.has(r.type)) continue; r.re.lastIndex=0; let m;
   while((m=r.re.exec(text))!==null){ const val=m[0];
    if(m.index===r.re.lastIndex) r.re.lastIndex++;
-   if(r.validate && !(lenient && r.cs) && !r.validate(val)) continue;
+   if(r.validate && !(lenient && r.cs) && !r.validate(val, text, m.index)) continue;
    out.push({start:m.index,end:m.index+val.length,type:r.type,value:val});
   }
  }
@@ -546,10 +551,11 @@ function updateGo(){ const t=T(); const btn=byId('btnGo'); const has=[...ENABLED
 
 async function onFile(file){
  if(!file) return; const ext=extOf(file.name); const t=T();
- const known=TEXT_EXT.includes(ext)||ext==='xlsx'||ext==='docx'||IMG_EXT.includes(ext);
+ const known=TEXT_EXT.includes(ext)||ext==='xlsx'||ext==='docx'||IMG_EXT.includes(ext)||ext==='pdf';
  if(!known){ byId('status').textContent=t.status_unsupported; return; }
  byId('fileWrap').innerHTML=`<div class="filebadge"><span>📄 ${file.name}</span><span class="x" id="clrFile">×</span></div>`;
  byId('clrFile').onclick=clearFile;
+ if(ext==='pdf'){ return onPdf(file); }
  if(IMG_EXT.includes(ext)){ return onImage(file); }
  if((ext==='xlsx' && typeof XLSX==='undefined') || (ext==='docx' && typeof JSZip==='undefined')){ byId('status').textContent=t.status_liberr; return; }
  byId('resultsPanel').classList.remove('hidden'); byId('modePanel').classList.remove('hidden');
@@ -561,7 +567,7 @@ async function onFile(file){
   byId('status').textContent=Object.keys(counts).length?t.status_ready:t.status_none;
  }catch(e){ byId('status').textContent='Error: '+e.message; }
 }
-function clearFile(){ LAST=null; ENABLED=new Set(); IMG={img:null,boxes:[],style:(IMG&&IMG.style)||'box',manual:false,drawing:false,sx:0,sy:0,cur:null,file:null}; byId('fileWrap').innerHTML=''; byId('fileIn').value=''; byId('resultsPanel').classList.add('hidden'); byId('modePanel').classList.add('hidden'); byId('visualPanel').classList.add('hidden'); byId('status').textContent=''; byId('visStatus').textContent=''; byId('vcanvas').classList.remove('draw'); byId('btnManual').classList.remove('on'); }
+function clearFile(){ LAST=null; ENABLED=new Set(); IMG={img:null,boxes:[],style:(IMG&&IMG.style)||'box',manual:false,drawing:false,sx:0,sy:0,cur:null,file:null,isPdf:false,pdf:null,numPages:0,page:1,pageBoxes:{}}; byId('fileWrap').innerHTML=''; byId('fileIn').value=''; byId('resultsPanel').classList.add('hidden'); byId('modePanel').classList.add('hidden'); byId('visualPanel').classList.add('hidden'); byId('pdfNav').classList.add('hidden'); byId('status').textContent=''; byId('visStatus').textContent=''; byId('vcanvas').classList.remove('draw'); byId('btnManual').classList.remove('on'); }
 
 byId('fileIn').addEventListener('change',e=>onFile(e.target.files[0]));
 const drop=byId('drop');
@@ -612,35 +618,7 @@ async function runScan(){
   await loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js');
   const out=await Tesseract.recognize(byId('vcanvas'),'eng+ita',{logger:m=>{ if(m.status&&m.status.indexOf('recogn')>=0) byId('visStatus').textContent=t.vis_status_ocr+' '+Math.round((m.progress||0)*100)+'%'; }});
   const words=((out.data&&out.data.words)||[]).filter(w=>w.text&&w.text.trim());
-  const add=[];
-  for(const w of words){ if(findMatches(w.text,null,true).length){ const bb=w.bbox; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); } }
-  // IBAN recompose: seed only from words starting like a country code (2 letters + 2 digits),
-  // join only same-line neighbours, box the longest run with IBAN structure (15-34 chars).
-  const ibanStruct=/^[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,30}$/;
-  const sameLine=(a,b)=>{ const cy=(a.y0+a.y1)/2; return cy>=b.y0 && cy<=b.y1; };
-  for(let i=0;i<words.length;i++){
-   if(!/^[A-Za-z]{2}\d{2}/.test(words[i].text)) continue;
-   let cand=''; const parts=[]; let bestParts=null;
-   for(let j=i;j<words.length && j<i+9;j++){
-    if(j>i && !sameLine(words[j].bbox, words[i].bbox)) break;
-    cand+=words[j].text.replace(/\s/g,''); parts.push(words[j]);
-    if(cand.length>34) break;
-    if(ibanStruct.test(cand)) bestParts=parts.slice();
-   }
-   if(bestParts) for(const p of bestParts){ const bb=p.bbox; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); }
-  }
-  // Address: anchor on a capitalized street prefix, box same-line words up to the civic number
-  const streetRe=/^(?:Via|Viale|V\.le|Piazza|P\.zza|P\.za|Corso|C\.so|Largo|L\.go|Vicolo|Strada|Borgo|Località|Loc\.|Contrada|C\.da|Lungomare|Salita|Traversa|Galleria|Riviera)$/;
-  const civic=/^\d{1,4}[A-Za-z]?$/;
-  for(let i=0;i<words.length;i++){
-   if(!streetRe.test(words[i].text)) continue;
-   const parts=[words[i]];
-   for(let j=i+1;j<words.length && j<i+8;j++){
-    if(!sameLine(words[j].bbox, words[i].bbox)) break;
-    parts.push(words[j]);
-    if(civic.test(words[j].text)){ for(const p of parts){ const bb=p.bbox; add.push({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true}); } break; }
-   }
-  }
+  const add=detectBoxes(words);
   IMG.boxes=IMG.boxes.filter(b=>!b.auto).concat(add); drawCanvas(false);
   byId('visStatus').textContent = add.length ? (LANG==='it'?('Trovate '+add.length+' aree sensibili — controlla e aggiungi a mano ciò che manca.'):('Found '+add.length+' sensitive regions — review and add anything missed by hand.')) : t.vis_status_none;
  }catch(e){ byId('visStatus').textContent='OCR error: '+e.message; }
@@ -660,8 +638,123 @@ function rotate90(){
  rot.onload=()=>{ IMG.img=rot; IMG.boxes=[]; IMG.cur=null; const c=byId('vcanvas'); c.width=rot.naturalWidth; c.height=rot.naturalHeight; drawCanvas(false); byId('visStatus').textContent=(LANG==='it'?'Immagine ruotata — premi Scan, o disegna i box.':'Image rotated — scan again, or draw boxes.'); };
  rot.src=off.toDataURL('image/png');
 }
+/* ---------- shared detection (used by image + PDF OCR) ---------- */
+function detectBoxes(words){
+ const add=[]; const mk=bb=>({x:bb.x0-2,y:bb.y0-2,w:(bb.x1-bb.x0)+4,h:(bb.y1-bb.y0)+4,auto:true});
+ for(const w of words){ if(findMatches(w.text,null,true).length) add.push(mk(w.bbox)); }
+ const ibanStruct=/^[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,30}$/;
+ const sameLine=(a,b)=>{ const cy=(a.y0+a.y1)/2; return cy>=b.y0 && cy<=b.y1; };
+ for(let i=0;i<words.length;i++){
+  if(!/^[A-Za-z]{2}\d{2}/.test(words[i].text)) continue;
+  let cand=''; const parts=[]; let bestParts=null;
+  for(let j=i;j<words.length && j<i+9;j++){
+   if(j>i && !sameLine(words[j].bbox, words[i].bbox)) break;
+   cand+=words[j].text.replace(/\s/g,''); parts.push(words[j]);
+   if(cand.length>34) break;
+   if(ibanStruct.test(cand)) bestParts=parts.slice();
+  }
+  if(bestParts) for(const p of bestParts) add.push(mk(p.bbox));
+ }
+ const streetRe=/^(?:Via|Viale|V\.le|Piazza|P\.zza|P\.za|Corso|C\.so|Largo|L\.go|Vicolo|Strada|Borgo|Località|Loc\.|Contrada|C\.da|Lungomare|Salita|Traversa|Galleria|Riviera)$/;
+ const civic=/^\d{1,4}[A-Za-z]?$/;
+ for(let i=0;i<words.length;i++){
+  if(!streetRe.test(words[i].text)) continue;
+  const parts=[words[i]];
+  for(let j=i+1;j<words.length && j<i+8;j++){
+   if(!sameLine(words[j].bbox, words[i].bbox)) break;
+   parts.push(words[j]);
+   if(civic.test(words[j].text)){ for(const p of parts) add.push(mk(p.bbox)); break; }
+  }
+ }
+ return add;
+}
+
+/* ---------- PDF redaction (rasterize → detect → reassemble) ---------- */
+const PDF_SCALE=2;
+async function renderPdfPage(num, scale){
+ const page=await IMG.pdf.getPage(num);
+ const vp=page.getViewport({scale:scale||PDF_SCALE});
+ const c=document.createElement('canvas'); c.width=Math.ceil(vp.width); c.height=Math.ceil(vp.height);
+ await page.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
+ return c;
+}
+function canvasToImage(c){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('image decode')); im.src=c.toDataURL('image/png'); }); }
+function paintBoxes(canvas, img, boxes, style){
+ const ctx=canvas.getContext('2d');
+ for(const b of boxes){
+  if(style==='blur'){ ctx.save(); ctx.beginPath(); ctx.rect(b.x,b.y,b.w,b.h); ctx.clip(); ctx.filter='blur('+Math.max(6,Math.round(Math.min(b.w,b.h)/3))+'px)'; ctx.drawImage(img,0,0); ctx.restore(); ctx.filter='none'; }
+  else { ctx.fillStyle='#000'; ctx.fillRect(b.x,b.y,b.w,b.h); }
+ }
+}
+function outNamePdf(name){ const i=name.lastIndexOf('.'); return (i<0?name:name.slice(0,i))+'_masked.pdf'; }
+async function onPdf(file){
+ byId('resultsPanel').classList.add('hidden'); byId('modePanel').classList.add('hidden'); byId('visualPanel').classList.remove('hidden');
+ byId('btnGoVis').disabled=true; byId('visStatus').textContent=(LANG==='it'?'Carico il PDF…':'Loading PDF…');
+ try{
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  IMG={img:null,boxes:[],style:(IMG&&IMG.style)||'box',manual:false,drawing:false,sx:0,sy:0,cur:null,file,isPdf:true,pdf,numPages:pdf.numPages,page:1,pageBoxes:{}};
+  byId('vcanvas').classList.remove('draw'); byId('btnManual').classList.remove('on');
+  byId('pdfNav').classList.remove('hidden');
+  await showPdfPage(1);
+  byId('btnGoVis').disabled=false;
+ }catch(e){ byId('visStatus').textContent='PDF error: '+e.message; }
+}
+async function showPdfPage(num){
+ const c=await renderPdfPage(num, PDF_SCALE); const im=await canvasToImage(c);
+ IMG.img=im; IMG.page=num; IMG.boxes=(IMG.pageBoxes[num]||[]).slice(); IMG.cur=null; IMG.drawing=false;
+ const vc=byId('vcanvas'); vc.width=im.naturalWidth; vc.height=im.naturalHeight; drawCanvas(false);
+ byId('pdfLabel').textContent=(LANG==='it'?'Pag ':'Page ')+num+' / '+IMG.numPages;
+ byId('visStatus').textContent=(LANG==='it'?'Pagina caricata — premi Scan o disegna i box.':'Page loaded — press Scan or draw boxes.');
+}
+function gotoPage(delta){ if(!IMG.isPdf) return; IMG.pageBoxes[IMG.page]=IMG.boxes.slice(); const np=Math.min(IMG.numPages,Math.max(1,IMG.page+delta)); if(np!==IMG.page) showPdfPage(np); }
+async function runScanPdf(){
+ const t=T(); if(!IMG.pdf) return; byId('btnScan').disabled=true;
+ try{
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js');
+  IMG.pageBoxes[IMG.page]=IMG.boxes.slice();
+  let total=0;
+  for(let p=1;p<=IMG.numPages;p++){
+   byId('visStatus').textContent=(LANG==='it'?'OCR pagina ':'OCR page ')+p+'/'+IMG.numPages+'…';
+   const canvas=(p===IMG.page)?byId('vcanvas'):await renderPdfPage(p, PDF_SCALE);
+   const out=await Tesseract.recognize(canvas,'eng+ita');
+   const words=((out.data&&out.data.words)||[]).filter(w=>w.text&&w.text.trim());
+   const auto=detectBoxes(words);
+   const manual=(IMG.pageBoxes[p]||[]).filter(b=>!b.auto);
+   IMG.pageBoxes[p]=manual.concat(auto); total+=auto.length;
+  }
+  IMG.boxes=(IMG.pageBoxes[IMG.page]||[]).slice(); drawCanvas(false);
+  byId('visStatus').textContent=(LANG==='it'?('OCR completato: '+total+' aree su '+IMG.numPages+' pagine. Sfoglia le pagine e aggiungi a mano ciò che manca.'):('OCR done: '+total+' regions across '+IMG.numPages+' pages. Flip through the pages and add anything missed by hand.'));
+ }catch(e){ byId('visStatus').textContent='OCR error: '+e.message; }
+ byId('btnScan').disabled=false;
+}
+async function exportPdf(){
+ const t=T(); if(!IMG.pdf) return; byId('btnGoVis').disabled=true; byId('visStatus').textContent=t.status_working;
+ try{
+  IMG.pageBoxes[IMG.page]=IMG.boxes.slice();
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js');
+  const out=await PDFLib.PDFDocument.create();
+  for(let p=1;p<=IMG.numPages;p++){
+   byId('visStatus').textContent=(LANG==='it'?'Compongo pagina ':'Building page ')+p+'/'+IMG.numPages+'…';
+   const pc=await renderPdfPage(p, PDF_SCALE); const im=await canvasToImage(pc);
+   const cv=document.createElement('canvas'); cv.width=im.naturalWidth; cv.height=im.naturalHeight;
+   cv.getContext('2d').drawImage(im,0,0);
+   paintBoxes(cv, im, IMG.pageBoxes[p]||[], IMG.style);
+   const png=await out.embedPng(cv.toDataURL('image/png'));
+   const pg=out.addPage([cv.width, cv.height]); pg.drawImage(png,{x:0,y:0,width:cv.width,height:cv.height});
+  }
+  const bytes=await out.save();
+  dl(outNamePdf(IMG.file.name), new Blob([bytes],{type:'application/pdf'}));
+  byId('visStatus').textContent=t.status_done;
+ }catch(e){ byId('visStatus').textContent='Export error: '+e.message; }
+ byId('btnGoVis').disabled=false;
+}
+
 function wireImage(){
- byId('btnScan').onclick=runScan; byId('btnGoVis').onclick=exportImage; byId('btnRotate').onclick=rotate90;
+ byId('btnScan').onclick=()=>{ IMG.isPdf?runScanPdf():runScan(); }; byId('btnGoVis').onclick=()=>{ IMG.isPdf?exportPdf():exportImage(); }; byId('btnRotate').onclick=rotate90;
+ byId('pdfPrev').onclick=()=>gotoPage(-1); byId('pdfNext').onclick=()=>gotoPage(1);
  byId('styBox').onclick=()=>{ IMG.style='box'; byId('styBox').classList.add('on'); byId('styBlur').classList.remove('on'); drawCanvas(false); };
  byId('styBlur').onclick=()=>{ IMG.style='blur'; byId('styBlur').classList.add('on'); byId('styBox').classList.remove('on'); drawCanvas(false); };
  byId('btnManual').onclick=()=>{ IMG.manual=!IMG.manual; byId('btnManual').classList.toggle('on',IMG.manual); byId('vcanvas').classList.toggle('draw',IMG.manual); };

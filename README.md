@@ -93,7 +93,8 @@ Spreadsheet read/write: [SheetJS](https://sheetjs.com/). DOCX (zip) handling: [J
 
 - [**FirstFew**](https://github.com/silvestroparisi/FirstFew) — prioritize the few that matter
 - [**FixFew**](https://github.com/silvestroparisi/FixFew) — verify and remediate
-- **MaskFew** — anonymize before you share
+- **MaskFew** — anonymize a file before you share it
+- [**AskFew**](https://github.com/silvestroparisi/AskFew) — a private AI that runs in your browser
 
 ## License
 

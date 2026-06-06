@@ -120,6 +120,9 @@
   .handoff p{margin:0;font-size:13px;color:var(--txt-dim);line-height:1.55;}
   .handoff a.cta-fx{flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#04140f;border:1px solid var(--accent);padding:13px 20px;border-radius:9px;text-decoration:none;font-weight:600;white-space:nowrap;transition:.15s;}
   .handoff a.cta-fx:hover{filter:brightness(1.1);}
+  .ho-alt{margin-top:13px;font-size:12.5px;color:var(--txt-dim);line-height:1.5;}
+  .ho-alt a{color:var(--accent);text-decoration:none;}
+  .ho-alt a:hover{text-decoration:underline;}
 
   footer{max-width:900px;margin:0 auto;padding:24px 22px 50px;border-top:1px solid var(--line-soft);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--txt-faint);line-height:1.7;} footer a{color:var(--accent);text-decoration:none;}
 
@@ -134,7 +137,7 @@
   .modal .close:hover{color:var(--danger);border:none;}
   .famly{max-width:900px;margin:0 auto;padding:8px 22px 4px;}
   .famly-h{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--txt-faint);margin:0 0 11px;}
-  .famly-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+  .famly-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
   @media(max-width:620px){.famly-grid{grid-template-columns:1fr;}}
   .famcard{display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 28px 12px 14px;text-decoration:none;transition:.15s;position:relative;}
   .famcard::after{content:"→";position:absolute;top:12px;right:13px;color:var(--txt-faint);font-size:12px;transition:.15s;}
@@ -253,8 +256,9 @@
         <h3 id="hoH"></h3>
         <p id="hoP"></p>
       </div>
-      <a class="cta-fx" id="hoCta" href="https://silvestroparisi.github.io/AskFew/" target="_blank" rel="noopener"></a>
+      <a class="cta-fx" id="hoCta" href="https://silvestroparisi.github.io/ScrubFew/" target="_blank" rel="noopener"></a>
     </div>
+    <p class="ho-alt" id="hoAlt"></p>
   </section>
 
   <div class="famly">
@@ -262,6 +266,7 @@
     <div class="famly-grid">
       <a class="famcard" href="https://silvestroparisi.github.io/FirstFew/" target="_blank" rel="noopener"><span class="famname">First<span class="ac">Few</span></span><span class="famtag" id="famFirst"></span></a>
       <a class="famcard" href="https://silvestroparisi.github.io/FixFew/" target="_blank" rel="noopener"><span class="famname">Fix<span class="ac">Few</span></span><span class="famtag" id="famFix"></span></a>
+      <a class="famcard" href="https://silvestroparisi.github.io/ScrubFew/" target="_blank" rel="noopener"><span class="famname">Scrub<span class="ac">Few</span></span><span class="famtag" id="famScrub"></span></a>
       <a class="famcard" href="https://silvestroparisi.github.io/AskFew/" target="_blank" rel="noopener"><span class="famname">Ask<span class="ac">Few</span></span><span class="famtag" id="famAsk"></span></a>
     </div>
   </div>
@@ -350,10 +355,12 @@ const I18N={
   famFirst:`Prioritize the few that matter.`,
   famFix:`Fix the few — verified.`,
   famAsk:`A private AI, in your browser.`,
-  ho_eyebrow:`ONE STEP FURTHER`,
-  ho_h:`Want what you <span class="ac">ask</span> to stay private too?`,
-  ho_p:`MaskFew makes a file safe to share with a cloud AI. But if you'd rather not share it at all, ask a local one — AskFew runs entirely in your browser. You can even drop in the file you just cleaned (not that you need to: nothing leaves your device anyway).`,
-  ho_cta:`Open AskFew →`,
+  famScrub:`Strip the few traces you can't see.`,
+  ho_eyebrow:`STEP 2 · BEFORE YOU SHARE`,
+  ho_h:`Content's clean. <span class="ac">Now strip the hidden metadata.</span>`,
+  ho_p:`MaskFew removed the sensitive text — but the file still carries what you can't see: EXIF/GPS, author name, the software that made it, edit history. Run the cleaned file through ScrubFew before you send it.`,
+  ho_cta:`Open ScrubFew →`,
+  ho_alt:`Or don't share it at all — paste it into <a href="https://silvestroparisi.github.io/AskFew/" target="_blank" rel="noopener">AskFew</a>, a private AI that runs entirely in your browser.`,
   footer:`Built by <b style="color:var(--txt)">Silvestro Parisi</b> · open source · runs entirely in your browser.<div style="margin-top:9px">More from me on <a href="https://github.com/silvestroparisi" target="_blank" rel="noopener">github.com/silvestroparisi</a></div>`,
   m_h1:`How MaskFew works`,
   m_p1:`You drop in a file. MaskFew reads it in your browser, finds sensitive data with a set of deterministic recognizers, lets you choose what to remove and how, and hands back the same file format with the data gone. Nothing is ever sent anywhere.`,
@@ -426,10 +433,12 @@ const I18N={
   famFirst:`Prioritizza i pochi che contano.`,
   famFix:`Sistema i pochi — verificati.`,
   famAsk:`Un'AI privata, nel browser.`,
-  ho_eyebrow:`UN PASSO IN PIÙ`,
-  ho_h:`Vuoi che anche quello che <span class="ac">chiedi</span> resti privato?`,
-  ho_p:`MaskFew rende un file sicuro da dare a un'AI cloud. Ma se preferisci non condividerlo affatto, chiedi a una locale — AskFew gira interamente nel tuo browser. Puoi anche allegare il file appena ripulito (non che serva: tanto non esce niente dal dispositivo).`,
-  ho_cta:`Apri AskFew →`,
+  famScrub:`Cancella le poche tracce nascoste.`,
+  ho_eyebrow:`PASSO 2 · PRIMA DI CONDIVIDERE`,
+  ho_h:`Il contenuto è pulito. <span class="ac">Ora togli i metadati nascosti.</span>`,
+  ho_p:`MaskFew ha rimosso il testo sensibile — ma il file porta ancora ciò che non vedi: EXIF/GPS, nome dell'autore, il software che l'ha creato, la cronologia delle modifiche. Passa il file pulito in ScrubFew prima di inviarlo.`,
+  ho_cta:`Apri ScrubFew →`,
+  ho_alt:`Oppure non condividerlo affatto — incollalo in <a href="https://silvestroparisi.github.io/AskFew/" target="_blank" rel="noopener">AskFew</a>, un'AI privata che gira interamente nel tuo browser.`,
   footer:`Creato da <b style="color:var(--txt)">Silvestro Parisi</b> · open source · gira interamente nel tuo browser.<div style="margin-top:9px">Altro da me su <a href="https://github.com/silvestroparisi" target="_blank" rel="noopener">github.com/silvestroparisi</a></div>`,
   m_h1:`Come funziona MaskFew`,
   m_p1:`Trascini un file. MaskFew lo legge nel browser, trova i dati sensibili con un insieme di recognizer deterministici, ti lascia scegliere cosa rimuovere e come, e ti ridà lo stesso formato di file con i dati spariti. Niente viene mai inviato da nessuna parte.`,
@@ -453,8 +462,8 @@ function applyLang(){
  byId('b1p').innerHTML=t.b1p; byId('s1p').innerHTML=t.s1p; byId('s2p').innerHTML=t.s2p; byId('s3p').innerHTML=t.s3p;
  byId('b2p').innerHTML=t.b2p; byId('b3p').innerHTML=t.b3p; byId('dataNote').innerHTML=t.dataNote;
  byId('hint').innerHTML=t.hint; byId('footer').innerHTML=t.footer;
- byId('famlyH').textContent=t.famlyH; byId('famFirst').textContent=t.famFirst; byId('famFix').textContent=t.famFix; byId('famAsk').textContent=t.famAsk;
- byId('hoEyebrow').textContent=t.ho_eyebrow; byId('hoH').innerHTML=t.ho_h; byId('hoP').innerHTML=t.ho_p; byId('hoCta').textContent=t.ho_cta;
+ byId('famlyH').textContent=t.famlyH; byId('famFirst').textContent=t.famFirst; byId('famFix').textContent=t.famFix; byId('famAsk').textContent=t.famAsk; byId('famScrub').textContent=t.famScrub;
+ byId('hoEyebrow').textContent=t.ho_eyebrow; byId('hoH').innerHTML=t.ho_h; byId('hoP').innerHTML=t.ho_p; byId('hoCta').textContent=t.ho_cta; byId('hoAlt').innerHTML=t.ho_alt;
  ['m_h1','m_h2','m_h3','m_h4'].forEach(k=>byId(k).textContent=t[k]);
  ['m_p1','m_p2','m_p3','m_p4'].forEach(k=>byId(k).innerHTML=t[k]);
  byId('visH').textContent=t.vis_h; byId('btnScan').textContent=t.vis_scan; byId('styBox').textContent=t.sty_box; byId('styBlur').textContent=t.sty_blur; byId('btnManual').textContent=t.vis_manual; byId('btnClearBoxes').textContent=t.vis_clear; byId('btnRotate').textContent=t.vis_rotate; byId('btnGoVis').textContent=t.vis_go; byId('visNote').textContent=t.vis_note;

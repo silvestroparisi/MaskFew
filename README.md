@@ -2,7 +2,7 @@
 
 **Privacy-first data anonymizer — runs entirely in your browser, open source, for everyone.**
 
-MaskFew is part of the **Few** toolkit, alongside [FirstFew](https://github.com/silvestroparisi/FirstFew) and [FixFew](https://github.com/silvestroparisi/FixFew).
+MaskFew is part of the **Few** toolkit, alongside the rest of the suite (see the full list below).
 It removes personal data, secrets and identifiers from your files — locally — so you're free to use cloud tools and AI without leaking what matters.
 
 It's a single, self-contained web page. No backend, no build step, no upload, no tracking.
@@ -92,10 +92,13 @@ Spreadsheet read/write: [SheetJS](https://sheetjs.com/). DOCX (zip) handling: [J
 ## The Few toolkit
 
 - [**FirstFew**](https://silvestroparisi.github.io/FirstFew/) — prioritize the few that matter
-- [**FixFew**](https://silvestroparisi.github.io/FixFew/) — verify and remediate
+- [**FixFew**](https://silvestroparisi.github.io/FixFew/) — verify and remediate vulnerabilities
 - **MaskFew** — anonymize a file before you share it
-- [**ScrubFew**](https://silvestroparisi.github.io/ScrubFew/) — strip hidden metadata before you share
 - [**AskFew**](https://silvestroparisi.github.io/AskFew/) — a private AI that runs in your browser
+- [**ScrubFew**](https://silvestroparisi.github.io/ScrubFew/) — strip hidden metadata before you share
+- [**RopaFew**](https://silvestroparisi.github.io/RopaFew/) — build your GDPR Article 30 register
+- [**GapFew**](https://silvestroparisi.github.io/GapFew/) — a multi-framework compliance gap self-assessment
+- [**CloseFew**](https://silvestroparisi.github.io/CloseFew/) — turn your gaps into a remediation plan
 
 ## License
 

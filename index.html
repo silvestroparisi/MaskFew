@@ -188,8 +188,15 @@
       <div class="mission"><h2 id="b2h"></h2><p class="lead" id="b2p"></p></div>
     </div>
     <div class="block" id="blk3">
-      <div class="eyebrow" id="b3eye"></div>
-      <div class="privacy"><h2 id="b3h"></h2><p class="lead" id="b3p"></p></div>
+      <div class="eyebrow" id="pv_eye"></div>
+      <h2 id="pv_h"></h2>
+      <p class="lead" id="pv_p"></p>
+      <div class="signals">
+        <div class="sigcard"><h3 id="pvs1h"></h3><p id="pvs1p"></p></div>
+        <div class="sigcard"><h3 id="pvs2h"></h3><p id="pvs2p"></p></div>
+        <div class="sigcard"><h3 id="pvs3h"></h3><p id="pvs3p"></p></div>
+      </div>
+      <a class="cta-fx" id="pv_cta" href="https://github.com/silvestroparisi/MaskFew" target="_blank" rel="noopener" style="margin-top:18px;display:inline-block"></a>
     </div>
   </div>
 
@@ -273,8 +280,11 @@
     <div class="famly-grid">
       <a class="famcard" href="https://silvestroparisi.github.io/FirstFew/" target="_blank" rel="noopener"><span class="famname">First<span class="ac">Few</span></span><span class="famtag" id="famFirst"></span></a>
       <a class="famcard" href="https://silvestroparisi.github.io/FixFew/" target="_blank" rel="noopener"><span class="famname">Fix<span class="ac">Few</span></span><span class="famtag" id="famFix"></span></a>
-      <a class="famcard" href="https://silvestroparisi.github.io/ScrubFew/" target="_blank" rel="noopener"><span class="famname">Scrub<span class="ac">Few</span></span><span class="famtag" id="famScrub"></span></a>
       <a class="famcard" href="https://silvestroparisi.github.io/AskFew/" target="_blank" rel="noopener"><span class="famname">Ask<span class="ac">Few</span></span><span class="famtag" id="famAsk"></span></a>
+      <a class="famcard" href="https://silvestroparisi.github.io/ScrubFew/" target="_blank" rel="noopener"><span class="famname">Scrub<span class="ac">Few</span></span><span class="famtag" id="famScrub"></span></a>
+      <a class="famcard" href="https://silvestroparisi.github.io/RopaFew/" target="_blank" rel="noopener"><span class="famname">Ropa<span class="ac">Few</span></span><span class="famtag" id="famRopa"></span></a>
+      <a class="famcard" href="https://silvestroparisi.github.io/GapFew/" target="_blank" rel="noopener"><span class="famname">Gap<span class="ac">Few</span></span><span class="famtag" id="famGap"></span></a>
+      <a class="famcard" href="https://silvestroparisi.github.io/CloseFew/" target="_blank" rel="noopener"><span class="famname">Close<span class="ac">Few</span></span><span class="famtag" id="famClose"></span></a>
     </div>
   </div>
 
@@ -301,6 +311,16 @@ const byId=id=>document.getElementById(id);
 /* ---------- i18n ---------- */
 const I18N={
  en:{
+  pv_eye:`PRIVATE BY DESIGN · OPEN SOURCE`,
+  pv_h:`Your files never leave your device.`,
+  pv_p:`You're handing this tool documents full of personal data — exactly what should never be uploaded to a random website. MaskFew has no backend: files are processed in your browser, nothing is sent anywhere, no account, no tracking.`,
+  pvs1h:`100% in your browser`,
+  pvs1p:`No server, no upload, no tracking. One HTML file that works even offline.`,
+  pvs2h:`Open source — don't trust, verify`,
+  pvs2p:`Don't take my word for it: the whole tool is one readable file. Open the source, or read it on GitHub.`,
+  pvs3h:`Free, for everyone`,
+  pvs3p:`Built so anyone — including small teams with no security budget — gets tools usually reserved for big organisations.`,
+  pv_cta:`Read the source on GitHub →`,
   how:`ⓘ How it works`,
   heroEyebrow:`PRIVACY-FIRST · RUNS IN YOUR BROWSER`,
   heroH1a:`Going to the cloud or an AI?`,
@@ -360,9 +380,12 @@ const I18N={
   vis_status_none:`No sensitive text detected — draw any regions by hand before downloading.`,
   famlyH:`The rest of the Few toolkit`,
   famFirst:`Prioritize the few that matter.`,
-  famFix:`Fix the few — verified.`,
+  famFix:`Fix the few that matter.`,
   famAsk:`A private AI, in your browser.`,
   famScrub:`Strip the few traces you can't see.`,
+  famRopa:`Your Article 30 register, fast.`,
+  famGap:`Find the few gaps that matter.`,
+  famClose:`Close the few gaps that matter.`,
   ho_eyebrow:`THE OTHER HALF`,
   ho_h:`Content's clean. <span class="ac">Now strip the hidden metadata.</span>`,
   ho_p:`MaskFew removed the sensitive text — but the file still carries what you can't see: EXIF/GPS, author name, the software that made it, edit history. Run the cleaned file through ScrubFew before you send it.`,
@@ -382,6 +405,16 @@ const I18N={
   m_p4:`Detection is best-effort, never 100% — always review before sharing. Complex DOCX/XLSX (charts, macros, text split mid-word across runs) may not be fully covered. Free-text names aren't detected, address detection is heuristic, and OCR on images and PDFs depends on scan quality — for these, the review boxes (add/remove by hand) are part of the workflow. Treat the output as "much safer", not "guaranteed clean".`
  },
  it:{
+  pv_eye:`PRIVATO PER NATURA · OPEN SOURCE`,
+  pv_h:`I tuoi file non lasciano mai il tuo dispositivo.`,
+  pv_p:`Stai dando a questo strumento documenti pieni di dati personali — proprio ciò che non andrebbe mai caricato su un sito qualunque. MaskFew non ha backend: i file vengono elaborati nel tuo browser, niente viene inviato da nessuna parte, niente account, niente tracciamento.`,
+  pvs1h:`100% nel tuo browser`,
+  pvs1p:`Nessun server, nessun upload, nessun tracciamento. Un file HTML che funziona anche offline.`,
+  pvs2h:`Open source — non fidarti, verifica`,
+  pvs2p:`Non credere sulla parola: tutto lo strumento è un file leggibile. Apri il sorgente, o leggilo su GitHub.`,
+  pvs3h:`Gratis, per tutti`,
+  pvs3p:`Pensato perché chiunque — anche le piccole realtà senza budget per la sicurezza — abbia strumenti di solito riservati alle grandi organizzazioni.`,
+  pv_cta:`Leggi il sorgente su GitHub →`,
   how:`ⓘ Come funziona`,
   heroEyebrow:`PRIVACY-FIRST · GIRA NEL TUO BROWSER`,
   heroH1a:`Vai sul cloud o su un'AI?`,
@@ -441,9 +474,12 @@ const I18N={
   vis_status_none:`Nessun testo sensibile rilevato — disegna a mano le aree prima di scaricare.`,
   famlyH:`Il resto del toolkit Few`,
   famFirst:`Prioritizza i pochi che contano.`,
-  famFix:`Sistema i pochi — verificati.`,
+  famFix:`Sistema i pochi che contano.`,
   famAsk:`Un'AI privata, nel browser.`,
   famScrub:`Cancella le poche tracce nascoste.`,
+  famRopa:`Il tuo registro art. 30, in fretta.`,
+  famGap:`Trova le poche lacune che contano.`,
+  famClose:`Chiudi le poche lacune che contano.`,
   ho_eyebrow:`L'ALTRA METÀ`,
   ho_h:`Il contenuto è pulito. <span class="ac">Ora togli i metadati nascosti.</span>`,
   ho_p:`MaskFew ha rimosso il testo sensibile — ma il file porta ancora ciò che non vedi: EXIF/GPS, nome dell'autore, il software che l'ha creato, la cronologia delle modifiche. Passa il file pulito in ScrubFew prima di inviarlo.`,
@@ -468,14 +504,14 @@ const T=()=>I18N[LANG];
 
 function applyLang(){
  const t=T();
- const direct=['how','heroEyebrow','heroH1a','heroH1b','heroSub','heroCta1','heroCta2','b1eye','b1h','s1h','s2h','s3h','b2eye','b2h','b3eye','b3h','appEye','appH','dropBig','dropSub','dropFmt','foundH','modeH','modePhT','modePhD','modePsT','modePsD','modeMkT','modeMkD','btnGo'];
+ const direct=['pv_eye','pv_h','pv_p','pvs1h','pvs1p','pvs2h','pvs2p','pvs3h','pvs3p','pv_cta','how','heroEyebrow','heroH1a','heroH1b','heroSub','heroCta1','heroCta2','b1eye','b1h','s1h','s2h','s3h','b2eye','b2h','appEye','appH','dropBig','dropSub','dropFmt','foundH','modeH','modePhT','modePhD','modePsT','modePsD','modeMkT','modeMkD','btnGo'];
  direct.forEach(k=>{ const el=byId(k==='how'?'btnHow':k); if(el) el.textContent=t[k]; });
  byId('btnHow').textContent=t.how;
  // innerHTML ones
  byId('b1p').innerHTML=t.b1p; byId('s1p').innerHTML=t.s1p; byId('s2p').innerHTML=t.s2p; byId('s3p').innerHTML=t.s3p;
- byId('b2p').innerHTML=t.b2p; byId('b3p').innerHTML=t.b3p; byId('dataNote').innerHTML=t.dataNote;
+ byId('b2p').innerHTML=t.b2p; byId('dataNote').innerHTML=t.dataNote;
  byId('hint').innerHTML=t.hint; byId('footer').innerHTML=t.footer;
- byId('famlyH').textContent=t.famlyH; byId('famFirst').textContent=t.famFirst; byId('famFix').textContent=t.famFix; byId('famAsk').textContent=t.famAsk; byId('famScrub').textContent=t.famScrub;
+ byId('famlyH','famFirst','famFix','famAsk','famScrub','famRopa','famGap','famClose').textContent=t.famlyH; byId('famFirst').textContent=t.famFirst; byId('famFix').textContent=t.famFix; byId('famAsk').textContent=t.famAsk; byId('famScrub').textContent=t.famScrub; byId('famRopa').textContent=t.famRopa; byId('famGap').textContent=t.famGap; byId('famClose').textContent=t.famClose;
  byId('hoEyebrow').textContent=t.ho_eyebrow; byId('hoH').innerHTML=t.ho_h; byId('hoP').innerHTML=t.ho_p; byId('hoCta').textContent=t.ho_cta; byId('ho2Eyebrow').textContent=t.ho2_eyebrow; byId('ho2H').innerHTML=t.ho2_h; byId('ho2P').innerHTML=t.ho2_p; byId('ho2Cta').textContent=t.ho2_cta;
  ['m_h1','m_h2','m_h3','m_h4'].forEach(k=>byId(k).textContent=t[k]);
  ['m_p1','m_p2','m_p3','m_p4'].forEach(k=>byId(k).innerHTML=t[k]);
